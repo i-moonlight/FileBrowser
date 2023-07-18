@@ -28,6 +28,16 @@ For installation instructions please refer to our docs at [https://filebrowser.o
 
 [Custom Branding](https://filebrowser.org/configuration/custom-branding) - You can customize your File Browser installation by change its name to any other you want, by adding a global custom style sheet and by using your own logotype if you want.
 
-## Contributing
+## Technologies
 
-If you're interested in contributing to this project, our docs are best places to start [https://filebrowser.org/contributing](https://filebrowser.org/contributing).
+BackEnd Language - [GO](https://go.dev/)
+Database - [BoltDB](https://github.com/boltdb/bolt)
+Database ORM - [Storm](https://github.com/asdine/storm)
+File system framework - [Afero](https://github.com/spf13/afero)
+Env Config - [Viper](https://github.com/spf13/viper)
+CLI Interface - [Cobra](https://github.com/spf13/cobra)
+API Routing = [gorilla/mux](https://github.com/gorilla/mux)
+
+
+FrontEnd Language - [JS](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+FrontEnd Framework - [VUE 2.6](https://v2.vuejs.org/)

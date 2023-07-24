@@ -834,7 +834,7 @@ export default {
         viewMode: modes[this.user.viewMode] || "list",
       };
 
-      users.update(data, ["viewMode"]).catch(this.$showError);
+      // users.update(data, ["viewMode"]).catch(this.$showError);
 
       // Await ensures correct value for setItemWeight()
       await this.$store.commit("updateUser", data);

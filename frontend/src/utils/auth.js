@@ -19,15 +19,15 @@ export function parseToken(token) {
   store.commit("setUser", data.user);
 }
 
-export async function validateLogin() {
-  try {
-    if (localStorage.getItem("jwt")) {
-      await renew(localStorage.getItem("jwt"));
-    }
-  } catch (_) {
-    console.warn('Invalid JWT token in storage') // eslint-disable-line
-  }
-}
+// export async function validateLogin() {
+//   try {
+//     if (localStorage.getItem("jwt")) {
+//       await renew(localStorage.getItem("jwt"));
+//     }
+//   } catch (_) {
+//     console.warn('Invalid JWT token in storage') // eslint-disable-line
+//   }
+// }
 
 export async function login(username, password, recaptcha) {
   const data = { username, password, recaptcha };
@@ -49,20 +49,35 @@ export async function login(username, password, recaptcha) {
   }
 }
 
-export async function renew(jwt) {
-  const res = await fetch(`${baseURL}/api/renew`, {
+// export async function renew(jwt) {
+//   const res = await fetch(`${baseURL}/api/renew`, {
+//     method: "POST",
+//     headers: {
+//       "X-Auth": jwt,
+//     },
+//   });
+
+//   const body = await res.text();
+
+//   if (res.status === 200) {
+//     parseToken(body);
+//   } else {
+//     throw new Error(body);
+//   }
+// }
+
+export async function checkToken(jwt) {
+  const res = await fetch(`${baseURL}/api/check-token`, {
     method: "POST",
     headers: {
       "X-Auth": jwt,
     },
   });
 
-  const body = await res.text();
-
   if (res.status === 200) {
-    parseToken(body);
+    parseToken(jwt);
   } else {
-    throw new Error(body);
+    throw new Error(res);
   }
 }
 
@@ -82,11 +97,13 @@ export async function signup(username, password) {
   }
 }
 
-export function logout() {
+export function logout(isRedirect = true) {
   document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/";
 
   store.commit("setJWT", "");
   store.commit("setUser", null);
   localStorage.setItem("jwt", null);
-  router.push({ path: "/login" });
+  if (isRedirect) {
+    router.push({ path: "/login" });
+  }
 }

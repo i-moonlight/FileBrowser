@@ -5,7 +5,7 @@ import store from "@/store";
 export async function fetch(url) {
   url = removePrefix(url);
 
-  const res = await fetchURL(`/api/resources${url}`, {});
+  const res = await fetchURL(`/api/resources${url}?${new URLSearchParams(store.state.sorting)}`, {});
 
   let data = await res.json();
   data.url = `/files${url}`;
@@ -177,10 +177,10 @@ export function getSubtitlesURL(file) {
   return subtitles;
 }
 
-export async function usage(url) {
-  url = removePrefix(url);
+// export async function usage(url) {
+//   url = removePrefix(url);
 
-  const res = await fetchURL(`/api/usage${url}`, {});
+//   const res = await fetchURL(`/api/usage${url}`, {});
 
-  return await res.json();
-}
+//   return await res.json();
+// }

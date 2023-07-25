@@ -23,6 +23,7 @@ const state = {
   show: null,
   showShell: false,
   showConfirm: null,
+  sorting: { by: 'name', asc: false }
 };
 
 export default new Vuex.Store({

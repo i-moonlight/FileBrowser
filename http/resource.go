@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/shirou/gopsutil/v3/disk"
@@ -20,6 +21,16 @@ import (
 )
 
 var resourceGetHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+	sortBy := r.URL.Query().Get("by")
+	isAscStr := r.URL.Query().Get("asc")
+
+	// Parse the boolean value from the parameter
+	isAsc, err := strconv.ParseBool(isAscStr)
+	if err != nil {
+		fmt.Fprintf(w, "Invalid boolean value provided: %s", err)
+		return http.StatusBadRequest, nil
+	}
+
 	file, err := files.NewFileInfo(files.FileOptions{
 		Fs:         d.user.Fs,
 		Path:       r.URL.Path,
@@ -34,7 +45,7 @@ var resourceGetHandler = withUser(func(w http.ResponseWriter, r *http.Request, d
 	}
 
 	if file.IsDir {
-		file.Listing.Sorting = d.user.Sorting
+		file.Listing.Sorting = files.Sorting{By: sortBy, Asc: isAsc}
 		file.Listing.ApplySort()
 		return renderJSON(w, r, file)
 	}

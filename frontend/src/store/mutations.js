@@ -82,6 +82,9 @@ const mutations = {
     state.clipboard.key = "";
     state.clipboard.items = [];
   },
+  setSorting: (state, value) => {
+    state.sorting = value;
+  },
 };
 
 export default mutations;

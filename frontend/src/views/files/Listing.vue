@@ -268,7 +268,7 @@
 <script>
 import Vue from "vue";
 import { mapState, mapGetters, mapMutations } from "vuex";
-import { users, files as api } from "@/api";
+import { files as api } from "@/api";
 import { enableExec } from "@/utils/constants";
 import * as upload from "@/utils/upload";
 import css from "@/utils/css";
@@ -293,7 +293,7 @@ export default {
       columnWidth: 280,
       dragCounter: 0,
       width: window.innerWidth,
-      itemWeight: 0,
+      itemWeight: 0
     };
   },
   computed: {
@@ -765,14 +765,7 @@ export default {
         }
       }
 
-      try {
-        await users.update({ id: this.user.id, sorting: { by, asc } }, [
-          "sorting",
-        ]);
-      } catch (e) {
-        this.$showError(e);
-      }
-
+      this.$store.commit("setSorting", { by, asc });
       this.$store.commit("setReload", true);
     },
     openSearch() {

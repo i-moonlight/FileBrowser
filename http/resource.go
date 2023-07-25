@@ -348,26 +348,26 @@ type DiskUsageResponse struct {
 	Used  uint64 `json:"used"`
 }
 
-var diskUsage = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
-	file, err := files.NewFileInfo(files.FileOptions{
-		Fs:         d.user.Fs,
-		Path:       r.URL.Path,
-		Modify:     d.user.Perm.Modify,
-		Expand:     false,
-		ReadHeader: false,
-		Checker:    d,
-		Content:    false,
-	})
-	if err != nil {
-		return errToStatus(err), err
-	}
-	fPath := file.RealPath()
-	if !file.IsDir {
-		return renderJSON(w, r, &DiskUsageResponse{
-			Total: 0,
-			Used:  0,
-		})
-	}
+// var diskUsage = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+// 	file, err := files.NewFileInfo(files.FileOptions{
+// 		Fs:         d.token.Fs,
+// 		Path:       r.URL.Path,
+// 		Modify:     d.token.Perm.Modify,
+// 		Expand:     false,
+// 		ReadHeader: false,
+// 		Checker:    d,
+// 		Content:    false,
+// 	})
+// 	if err != nil {
+// 		return errToStatus(err), err
+// 	}
+// 	fPath := file.RealPath()
+// 	if !file.IsDir {
+// 		return renderJSON(w, r, &DiskUsageResponse{
+// 			Total: 0,
+// 			Used:  0,
+// 		})
+// 	}
 
 	usage, err := disk.UsageWithContext(r.Context(), fPath)
 	if err != nil {

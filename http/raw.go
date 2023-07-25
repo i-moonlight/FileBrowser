@@ -12,7 +12,6 @@ import (
 	"github.com/mholt/archiver/v3"
 
 	"github.com/filebrowser/filebrowser/v2/files"
-	"github.com/filebrowser/filebrowser/v2/fileutils"
 	"github.com/filebrowser/filebrowser/v2/users"
 )
 
@@ -76,41 +75,41 @@ func setContentDisposition(w http.ResponseWriter, r *http.Request, file *files.F
 	}
 }
 
-var rawHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
-	if !d.user.Perm.Download {
-		return http.StatusAccepted, nil
-	}
+// var rawHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+// 	if !d.token.Perm.Download {
+// 		return http.StatusAccepted, nil
+// 	}
 
-	file, err := files.NewFileInfo(files.FileOptions{
-		Fs:         d.user.Fs,
-		Path:       r.URL.Path,
-		Modify:     d.user.Perm.Modify,
-		Expand:     false,
-		ReadHeader: d.server.TypeDetectionByHeader,
-		Checker:    d,
-	})
-	if err != nil {
-		return errToStatus(err), err
-	}
+// 	file, err := files.NewFileInfo(files.FileOptions{
+// 		Fs:         d.token.Fs,
+// 		Path:       r.URL.Path,
+// 		Modify:     d.token.Perm.Modify,
+// 		Expand:     false,
+// 		ReadHeader: d.server.TypeDetectionByHeader,
+// 		Checker:    d,
+// 	})
+// 	if err != nil {
+// 		return errToStatus(err), err
+// 	}
 
-	if files.IsNamedPipe(file.Mode) {
-		setContentDisposition(w, r, file)
-		return 0, nil
-	}
+// 	if files.IsNamedPipe(file.Mode) {
+// 		setContentDisposition(w, r, file)
+// 		return 0, nil
+// 	}
 
-	if !file.IsDir {
-		return rawFileHandler(w, r, file)
-	}
+// 	if !file.IsDir {
+// 		return rawFileHandler(w, r, file)
+// 	}
 
-	return rawDirHandler(w, r, d, file)
-})
+// 	return rawDirHandler(w, r, d, file)
+// })
 
 func addFile(ar archiver.Writer, d *data, path, commonPath string) error {
 	if !d.Check(path) {
 		return nil
 	}
 
-	info, err := d.user.Fs.Stat(path)
+	info, err := d.token.Fs.Stat(path)
 	if err != nil {
 		return err
 	}
@@ -119,7 +118,7 @@ func addFile(ar archiver.Writer, d *data, path, commonPath string) error {
 		return nil
 	}
 
-	file, err := d.user.Fs.Open(path)
+	file, err := d.token.Fs.Open(path)
 	if err != nil {
 		return err
 	}
@@ -158,46 +157,46 @@ func addFile(ar archiver.Writer, d *data, path, commonPath string) error {
 	return nil
 }
 
-func rawDirHandler(w http.ResponseWriter, r *http.Request, d *data, file *files.FileInfo) (int, error) {
-	filenames, err := parseQueryFiles(r, file, d.user)
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
+// func rawDirHandler(w http.ResponseWriter, r *http.Request, d *data, file *files.FileInfo) (int, error) {
+// 	filenames, err := parseQueryFiles(r, file, d.user)
+// 	if err != nil {
+// 		return http.StatusInternalServerError, err
+// 	}
 
-	extension, ar, err := parseQueryAlgorithm(r)
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
+// 	extension, ar, err := parseQueryAlgorithm(r)
+// 	if err != nil {
+// 		return http.StatusInternalServerError, err
+// 	}
 
-	err = ar.Create(w)
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
-	defer ar.Close()
+// 	err = ar.Create(w)
+// 	if err != nil {
+// 		return http.StatusInternalServerError, err
+// 	}
+// 	defer ar.Close()
 
-	commonDir := fileutils.CommonPrefix(filepath.Separator, filenames...)
+// 	commonDir := fileutils.CommonPrefix(filepath.Separator, filenames...)
 
-	name := filepath.Base(commonDir)
-	if name == "." || name == "" || name == string(filepath.Separator) {
-		name = file.Name
-	}
-	// Prefix used to distinguish a filelist generated
-	// archive from the full directory archive
-	if len(filenames) > 1 {
-		name = "_" + name
-	}
-	name += extension
-	w.Header().Set("Content-Disposition", "attachment; filename*=utf-8''"+url.PathEscape(name))
+// 	name := filepath.Base(commonDir)
+// 	if name == "." || name == "" || name == string(filepath.Separator) {
+// 		name = file.Name
+// 	}
+// 	// Prefix used to distinguish a filelist generated
+// 	// archive from the full directory archive
+// 	if len(filenames) > 1 {
+// 		name = "_" + name
+// 	}
+// 	name += extension
+// 	w.Header().Set("Content-Disposition", "attachment; filename*=utf-8''"+url.PathEscape(name))
 
-	for _, fname := range filenames {
-		err = addFile(ar, d, fname, commonDir)
-		if err != nil {
-			log.Printf("Failed to archive %s: %v", fname, err)
-		}
-	}
+// 	for _, fname := range filenames {
+// 		err = addFile(ar, d, fname, commonDir)
+// 		if err != nil {
+// 			log.Printf("Failed to archive %s: %v", fname, err)
+// 		}
+// 	}
 
-	return 0, nil
-}
+// 	return 0, nil
+// }
 
 func rawFileHandler(w http.ResponseWriter, r *http.Request, file *files.FileInfo) (int, error) {
 	fd, err := file.Fs.Open(file.Path)

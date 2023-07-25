@@ -11,7 +11,7 @@ var searchHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *dat
 	response := []map[string]interface{}{}
 	query := r.URL.Query().Get("query")
 
-	err := search.Search(d.user.Fs, r.URL.Path, query, d, func(path string, f os.FileInfo) error {
+	err := search.Search(d.token.Fs, r.URL.Path, query, d, func(path string, f os.FileInfo) error {
 		response = append(response, map[string]interface{}{
 			"dir":  f.IsDir(),
 			"path": path,

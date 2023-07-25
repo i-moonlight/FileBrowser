@@ -72,8 +72,8 @@ func NewHandler(
 	api.PathPrefix("/share").Handler(monkey(sharePostHandler, "/api/share")).Methods("POST")
 	api.PathPrefix("/share").Handler(monkey(shareDeleteHandler, "/api/share")).Methods("DELETE")
 
-	api.Handle("/settings", monkey(settingsGetHandler, "")).Methods("GET")
-	api.Handle("/settings", monkey(settingsPutHandler, "")).Methods("PUT")
+	// api.Handle("/settings", monkey(settingsGetHandler, "")).Methods("GET")
+	// api.Handle("/settings", monkey(settingsPutHandler, "")).Methods("PUT")
 
 	api.PathPrefix("/raw").Handler(monkey(rawHandler, "/api/raw")).Methods("GET")
 	api.PathPrefix("/preview/{size}/{path:.*}").

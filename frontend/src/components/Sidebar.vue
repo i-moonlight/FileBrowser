@@ -34,7 +34,7 @@
       </div>
 
       <div>
-        <button
+        <!-- <button
           class="action"
           @click="toSettings"
           :aria-label="$t('sidebar.settings')"
@@ -42,7 +42,7 @@
         >
           <i class="material-icons">settings_applications</i>
           <span>{{ $t("sidebar.settings") }}</span>
-        </button>
+        </button> -->
 
         <button
           v-if="canLogout"
@@ -80,7 +80,7 @@
       </router-link>
     </template>
 
-    <div
+    <!-- <div
       class="credits"
       v-if="
         $router.currentRoute.path.includes('/files/') && !disableUsedPercentage
@@ -90,9 +90,9 @@
       <progress-bar :val="usage.usedPercentage" size="small"></progress-bar>
       <br />
       {{ usage.used }} of {{ usage.total }} used
-    </div>
+    </div> -->
 
-    <p class="credits">
+    <!-- <p class="credits">
       <span>
         <span v-if="disableExternal">File Browser</span>
         <a
@@ -107,7 +107,7 @@
       <span>
         <a @click="help">{{ $t("sidebar.help") }}</a>
       </span>
-    </p>
+    </p> -->
   </nav>
 </template>
 
@@ -122,15 +122,15 @@ import {
   noAuth,
   loginPage,
 } from "@/utils/constants";
-import { files as api } from "@/api";
-import ProgressBar from "vue-simple-progress";
-import prettyBytes from "pretty-bytes";
+// import { files as api } from "@/api";
+// import ProgressBar from "vue-simple-progress";
+// import prettyBytes from "pretty-bytes";
 
 export default {
   name: "sidebar",
-  components: {
-    ProgressBar,
-  },
+  // components: {
+  //   ProgressBar,
+  // },
   computed: {
     ...mapState(["user"]),
     ...mapGetters(["isLogged"]),
@@ -143,34 +143,34 @@ export default {
     disableUsedPercentage: () => disableUsedPercentage,
     canLogout: () => !noAuth && loginPage,
   },
-  asyncComputed: {
-    usage: {
-      async get() {
-        let path = this.$route.path.endsWith("/")
-          ? this.$route.path
-          : this.$route.path + "/";
-        let usageStats = { used: 0, total: 0, usedPercentage: 0 };
-        if (this.disableUsedPercentage) {
-          return usageStats;
-        }
-        try {
-          let usage = await api.usage(path);
-          usageStats = {
-            used: prettyBytes(usage.used, { binary: true }),
-            total: prettyBytes(usage.total, { binary: true }),
-            usedPercentage: Math.round((usage.used / usage.total) * 100),
-          };
-        } catch (error) {
-          this.$showError(error);
-        }
-        return usageStats;
-      },
-      default: { used: "0 B", total: "0 B", usedPercentage: 0 },
-      shouldUpdate() {
-        return this.$router.currentRoute.path.includes("/files/");
-      },
-    },
-  },
+  // asyncComputed: {
+  //   usage: {
+  //     async get() {
+  //       let path = this.$route.path.endsWith("/")
+  //         ? this.$route.path
+  //         : this.$route.path + "/";
+  //       let usageStats = { used: 0, total: 0, usedPercentage: 0 };
+  //       if (this.disableUsedPercentage) {
+  //         return usageStats;
+  //       }
+  //       try {
+  //         let usage = await api.usage(path);
+  //         usageStats = {
+  //           used: prettyBytes(usage.used, { binary: true }),
+  //           total: prettyBytes(usage.total, { binary: true }),
+  //           usedPercentage: Math.round((usage.used / usage.total) * 100),
+  //         };
+  //       } catch (error) {
+  //         this.$showError(error);
+  //       }
+  //       return usageStats;
+  //     },
+  //     default: { used: "0 B", total: "0 B", usedPercentage: 0 },
+  //     shouldUpdate() {
+  //       return this.$router.currentRoute.path.includes("/files/");
+  //     },
+  //   },
+  // },
   methods: {
     toRoot() {
       this.$router.push({ path: "/files/" }, () => {});

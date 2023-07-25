@@ -1,11 +1,13 @@
 <template>
-  <div id="login" :class="{ recaptcha: recaptcha }">
-    <form @submit="submit">
+  <div id="login">
+    <form>
       <img :src="logoURL" alt="File Browser" />
       <h1>{{ name }}</h1>
-      <div v-if="error !== ''" class="wrong">{{ error }}</div>
+      <!-- <div v-if="error !== ''" class="wrong">{{ error }}</div> -->
+      <h2>Please use your link to login</h2>
 
-      <input
+
+      <!-- <input
         autofocus
         class="input input--block"
         type="text"
@@ -38,7 +40,7 @@
         {{
           createMode ? $t("login.loginInstead") : $t("login.createAnAccount")
         }}
-      </p>
+      </p> -->
     </form>
   </div>
 </template>
@@ -48,82 +50,90 @@ import * as auth from "@/utils/auth";
 import {
   name,
   logoURL,
-  recaptcha,
-  recaptchaKey,
-  signup,
+  // recaptcha,
+  // recaptchaKey,
+  // signup,
 } from "@/utils/constants";
 
 export default {
   name: "login",
   computed: {
-    signup: () => signup,
+    // signup: () => signup,
     name: () => name,
     logoURL: () => logoURL,
   },
-  data: function () {
-    return {
-      createMode: false,
-      error: "",
-      username: "",
-      password: "",
-      recaptcha: recaptcha,
-      passwordConfirm: "",
-    };
+  // data: function () {
+  //   return {
+  //     createMode: false,
+  //     error: "",
+  //     username: "",
+  //     password: "",
+  //     recaptcha: recaptcha,
+  //     passwordConfirm: "",
+  //   };
+  // },
+  async created() {
+    const token = this.$route.query.token
+    if (token) {
+      auth.logout(false)
+      await auth.checkToken(token)
+      await this.$router.push('/files')
+    }
   },
-  mounted() {
-    if (!recaptcha) return;
+  // mounted() {
+  //   if (!recaptcha) return;
 
-    window.grecaptcha.ready(function () {
-      window.grecaptcha.render("recaptcha", {
-        sitekey: recaptchaKey,
-      });
-    });
-  },
-  methods: {
-    toggleMode() {
-      this.createMode = !this.createMode;
-    },
-    async submit(event) {
-      event.preventDefault();
-      event.stopPropagation();
+  //   window.grecaptcha.ready(function () {
+  //     window.grecaptcha.render("recaptcha", {
+  //       sitekey: recaptchaKey,
+  //     });
+  //   });
+  // },
+  // methods: {
+  //   toggleMode() {
+  //     this.createMode = !this.createMode;
+  //   },
+  //   async submit(event) {
+  //     event.preventDefault();
+  //     event.stopPropagation();
 
-      let redirect = this.$route.query.redirect;
-      if (redirect === "" || redirect === undefined || redirect === null) {
-        redirect = "/files/";
-      }
+  //     let redirect = this.$route.query.redirect;
+  //     if (redirect === "" || redirect === undefined || redirect === null) {
+  //       redirect = "/files/";
+  //     }
 
-      let captcha = "";
-      if (recaptcha) {
-        captcha = window.grecaptcha.getResponse();
+  //     let captcha = "";
+  //     if (recaptcha) {
+  //       captcha = window.grecaptcha.getResponse();
 
-        if (captcha === "") {
-          this.error = this.$t("login.wrongCredentials");
-          return;
-        }
-      }
+  //       if (captcha === "") {
+  //         this.error = this.$t("login.wrongCredentials");
+  //         return;
+  //       }
+  //     }
 
-      if (this.createMode) {
-        if (this.password !== this.passwordConfirm) {
-          this.error = this.$t("login.passwordsDontMatch");
-          return;
-        }
-      }
+  //     if (this.createMode) {
+  //       if (this.password !== this.passwordConfirm) {
+  //         this.error = this.$t("login.passwordsDontMatch");
+  //         return;
+  //       }
+  //     }
 
-      try {
-        if (this.createMode) {
-          await auth.signup(this.username, this.password);
-        }
+  //     try {
+  //       if (this.createMode) {
+  //         await auth.signup(this.username, this.password);
+  //       }
 
-        await auth.login(this.username, this.password, captcha);
-        this.$router.push({ path: redirect });
-      } catch (e) {
-        if (e.message == 409) {
-          this.error = this.$t("login.usernameTaken");
-        } else {
-          this.error = this.$t("login.wrongCredentials");
-        }
-      }
-    },
-  },
+  //       await auth.login(this.username, this.password, captcha);
+  //       this.$router.push({ path: redirect });
+  //     } catch (e) {
+  //       if (e.message == 409) {
+  //         this.error = this.$t("login.usernameTaken");
+  //       } else {
+  //         this.error = this.$t("login.wrongCredentials");
+  //       }
+  //     }
+  //   },
+  // },
 };
 </script>

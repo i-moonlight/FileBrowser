@@ -1,5 +1,5 @@
 import store from "@/store";
-import { renew, logout } from "@/utils/auth";
+import { logout } from "@/utils/auth";
 import { baseURL } from "@/utils/constants";
 import { encodePath } from "@/utils/url";
 
@@ -25,9 +25,9 @@ export async function fetchURL(url, opts, auth = true) {
     throw error;
   }
 
-  if (auth && res.headers.get("X-Renew-Token") === "true") {
-    await renew(store.state.jwt);
-  }
+  // if (auth && res.headers.get("X-Renew-Token") === "true") {
+  //   await renew(store.state.jwt);
+  // }
 
   if (res.status < 200 || res.status > 299) {
     const error = new Error(await res.text());

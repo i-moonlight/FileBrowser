@@ -5,29 +5,32 @@ import (
 	"net/http"
 	"strconv"
 
+	rdb "github.com/redis/go-redis/v9"
 	"github.com/tomasen/realip"
 
 	"github.com/filebrowser/filebrowser/v2/rules"
 	"github.com/filebrowser/filebrowser/v2/runner"
 	"github.com/filebrowser/filebrowser/v2/settings"
 	"github.com/filebrowser/filebrowser/v2/storage"
-	"github.com/filebrowser/filebrowser/v2/users"
 )
 
 type handleFunc func(w http.ResponseWriter, r *http.Request, d *data) (int, error)
+
+type ViewMode string
 
 type data struct {
 	*runner.Runner
 	settings *settings.Settings
 	server   *settings.Server
 	store    *storage.Storage
-	user     *users.User
+	token    *tokenStruct
+	redis    *rdb.Client
 	raw      interface{}
 }
 
 // Check implements rules.Checker.
 func (d *data) Check(path string) bool {
-	if d.user.HideDotfiles && rules.MatchHidden(path) {
+	if d.token.HideDotfiles && rules.MatchHidden(path) {
 		return false
 	}
 
@@ -38,11 +41,11 @@ func (d *data) Check(path string) bool {
 		}
 	}
 
-	for _, rule := range d.user.Rules {
-		if rule.Matches(path) {
-			allow = rule.Allow
-		}
-	}
+	// for _, rule := range d.user.Rules {
+	// 	if rule.Matches(path) {
+	// 		allow = rule.Allow
+	// 	}
+	// }
 
 	return allow
 }

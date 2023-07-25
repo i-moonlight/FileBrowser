@@ -1,17 +1,15 @@
 package http
 
 import (
-	"encoding/json"
-	"log"
 	"net/http"
-	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/golang-jwt/jwt/v4/request"
+	"github.com/spf13/afero"
 
-	"github.com/filebrowser/filebrowser/v2/errors"
 	"github.com/filebrowser/filebrowser/v2/users"
 )
 
@@ -29,11 +27,36 @@ type userInfo struct {
 	LockPassword bool              `json:"lockPassword"`
 	HideDotfiles bool              `json:"hideDotfiles"`
 	DateFormat   bool              `json:"dateFormat"`
+	Scope        string            `json:"scope"`
 }
 
 type authToken struct {
 	User userInfo `json:"user"`
 	jwt.RegisteredClaims
+}
+
+const (
+	ListViewMode   ViewMode = "list"
+	MosaicViewMode ViewMode = "mosaic"
+)
+
+type Permissions struct {
+	Admin    bool `json:"admin"`
+	Execute  bool `json:"execute"`
+	Create   bool `json:"create"`
+	Rename   bool `json:"rename"`
+	Modify   bool `json:"modify"`
+	Delete   bool `json:"delete"`
+	Share    bool `json:"share"`
+	Download bool `json:"download"`
+}
+type tokenStruct struct {
+	Scope        string      `json:"scope"`
+	Locale       string      `json:"locale"`
+	ViewMode     ViewMode    `json:"viewMode"`
+	Perm         Permissions `json:"perm"`
+	Fs           afero.Fs    `json:"-" yaml:"-"`
+	HideDotfiles bool        `json:"hideDotfiles"`
 }
 
 type extractor []string
@@ -77,16 +100,29 @@ func withUser(fn handleFunc) handleFunc {
 		}
 
 		expired := !tk.VerifyExpiresAt(time.Now().Add(time.Hour), true)
-		updated := tk.IssuedAt != nil && tk.IssuedAt.Unix() < d.store.Users.LastUpdate(tk.User.ID)
 
-		if expired || updated {
-			w.Header().Add("X-Renew-Token", "true")
+		if expired {
+			return http.StatusUnauthorized, nil
 		}
 
-		d.user, err = d.store.Users.Get(d.server.Root, tk.User.ID)
-		if err != nil {
-			return http.StatusInternalServerError, err
+		// d.user, err = d.store.Users.Get(d.server.Root, tk.User.ID)
+		// if err != nil {
+		// 	return http.StatusInternalServerError, err
+		// }
+
+		scope := filepath.Join(d.server.Root, filepath.Join("/", tk.User.Scope)) //nolint:gocritic
+		fs := afero.NewBasePathFs(afero.NewOsFs(), scope)
+
+		tokenPayload := &tokenStruct{
+			Scope:        tk.User.Scope,
+			Locale:       tk.User.Scope,
+			ViewMode:     ViewMode(tk.User.ViewMode),
+			Perm:         Permissions(tk.User.Perm),
+			Fs:           fs,
+			HideDotfiles: tk.User.HideDotfiles,
 		}
+
+		d.token = tokenPayload
 		return fn(w, r, d)
 	}
 }

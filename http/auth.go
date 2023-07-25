@@ -172,8 +172,12 @@ var signupHandler = func(w http.ResponseWriter, r *http.Request, d *data) (int, 
 	return http.StatusOK, nil
 }
 
-var renewHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
-	return printToken(w, r, d, d.user)
+// var renewHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+// 	return printToken(w, r, d, d.user)
+// })
+
+var checkTokenHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+	return http.StatusOK, nil
 })
 
 func printToken(w http.ResponseWriter, _ *http.Request, d *data, user *users.User) (int, error) {

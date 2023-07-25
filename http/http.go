@@ -50,7 +50,8 @@ func NewHandler(
 
 	api.Handle("/login", monkey(loginHandler, ""))
 	api.Handle("/signup", monkey(signupHandler, ""))
-	api.Handle("/renew", monkey(renewHandler, ""))
+	// api.Handle("/renew", monkey(renewHandler, ""))
+	api.Handle("/check-token", monkey(checkTokenHandler, "")).Methods("POST")
 
 	// users := api.PathPrefix("/users").Subrouter()
 	// users.Handle("", monkey(usersGetHandler, "")).Methods("GET")

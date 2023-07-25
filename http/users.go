@@ -1,207 +1,192 @@
 package http
 
-import (
-	"encoding/json"
-	"log"
-	"net/http"
-	"sort"
-	"strconv"
+// var (
+// 	NonModifiableFieldsForNonAdmin = []string{"Username", "Scope", "LockPassword", "Perm", "Commands", "Rules"}
+// )
 
-	"github.com/gorilla/mux"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
+// type modifyUserRequest struct {
+// 	modifyRequest
+// 	Data *users.User `json:"data"`
+// }
 
-	"github.com/filebrowser/filebrowser/v2/errors"
-	"github.com/filebrowser/filebrowser/v2/users"
-)
+// func getUserID(r *http.Request) (uint, error) {
+// 	vars := mux.Vars(r)
+// 	i, err := strconv.ParseUint(vars["id"], 10, 0)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+// 	return uint(i), err
+// }
 
-var (
-	NonModifiableFieldsForNonAdmin = []string{"Username", "Scope", "LockPassword", "Perm", "Commands", "Rules"}
-)
+// func getUser(_ http.ResponseWriter, r *http.Request) (*modifyUserRequest, error) {
+// 	if r.Body == nil {
+// 		return nil, errors.ErrEmptyRequest
+// 	}
 
-type modifyUserRequest struct {
-	modifyRequest
-	Data *users.User `json:"data"`
-}
+// 	req := &modifyUserRequest{}
+// 	err := json.NewDecoder(r.Body).Decode(req)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-func getUserID(r *http.Request) (uint, error) {
-	vars := mux.Vars(r)
-	i, err := strconv.ParseUint(vars["id"], 10, 0)
-	if err != nil {
-		return 0, err
-	}
-	return uint(i), err
-}
+// 	if req.What != "user" {
+// 		return nil, errors.ErrInvalidDataType
+// 	}
 
-func getUser(_ http.ResponseWriter, r *http.Request) (*modifyUserRequest, error) {
-	if r.Body == nil {
-		return nil, errors.ErrEmptyRequest
-	}
+// 	return req, nil
+// }
 
-	req := &modifyUserRequest{}
-	err := json.NewDecoder(r.Body).Decode(req)
-	if err != nil {
-		return nil, err
-	}
+// func withSelfOrAdmin(fn handleFunc) handleFunc {
+// 	return withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+// 		id, err := getUserID(r)
+// 		if err != nil {
+// 			return http.StatusInternalServerError, err
+// 		}
 
-	if req.What != "user" {
-		return nil, errors.ErrInvalidDataType
-	}
+// 		if d.user.ID != id && !d.user.Perm.Admin {
+// 			return http.StatusForbidden, nil
+// 		}
 
-	return req, nil
-}
+// 		d.raw = id
+// 		return fn(w, r, d)
+// 	})
+// }
 
-func withSelfOrAdmin(fn handleFunc) handleFunc {
-	return withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
-		id, err := getUserID(r)
-		if err != nil {
-			return http.StatusInternalServerError, err
-		}
+// var usersGetHandler = withAdmin(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+// 	users, err := d.store.Users.Gets(d.server.Root)
+// 	if err != nil {
+// 		return http.StatusInternalServerError, err
+// 	}
 
-		if d.user.ID != id && !d.user.Perm.Admin {
-			return http.StatusForbidden, nil
-		}
+// 	for _, u := range users {
+// 		u.Password = ""
+// 	}
 
-		d.raw = id
-		return fn(w, r, d)
-	})
-}
+// 	sort.Slice(users, func(i, j int) bool {
+// 		return users[i].ID < users[j].ID
+// 	})
 
-var usersGetHandler = withAdmin(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
-	users, err := d.store.Users.Gets(d.server.Root)
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
+// 	return renderJSON(w, r, users)
+// })
 
-	for _, u := range users {
-		u.Password = ""
-	}
+// var userGetHandler = withSelfOrAdmin(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+// 	u, err := d.store.Users.Get(d.server.Root, d.raw.(uint))
+// 	if err == errors.ErrNotExist {
+// 		return http.StatusNotFound, err
+// 	}
 
-	sort.Slice(users, func(i, j int) bool {
-		return users[i].ID < users[j].ID
-	})
+// 	if err != nil {
+// 		return http.StatusInternalServerError, err
+// 	}
 
-	return renderJSON(w, r, users)
-})
+// 	u.Password = ""
+// 	if !d.user.Perm.Admin {
+// 		u.Scope = ""
+// 	}
+// 	return renderJSON(w, r, u)
+// })
 
-var userGetHandler = withSelfOrAdmin(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
-	u, err := d.store.Users.Get(d.server.Root, d.raw.(uint))
-	if err == errors.ErrNotExist {
-		return http.StatusNotFound, err
-	}
+// var userDeleteHandler = withSelfOrAdmin(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+// 	err := d.store.Users.Delete(d.raw.(uint))
+// 	if err != nil {
+// 		return errToStatus(err), err
+// 	}
 
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
+// 	return http.StatusOK, nil
+// })
 
-	u.Password = ""
-	if !d.user.Perm.Admin {
-		u.Scope = ""
-	}
-	return renderJSON(w, r, u)
-})
+// var userPostHandler = withAdmin(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+// 	req, err := getUser(w, r)
+// 	if err != nil {
+// 		return http.StatusBadRequest, err
+// 	}
 
-var userDeleteHandler = withSelfOrAdmin(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
-	err := d.store.Users.Delete(d.raw.(uint))
-	if err != nil {
-		return errToStatus(err), err
-	}
+// 	if len(req.Which) != 0 {
+// 		return http.StatusBadRequest, nil
+// 	}
 
-	return http.StatusOK, nil
-})
+// 	if req.Data.Password == "" {
+// 		return http.StatusBadRequest, errors.ErrEmptyPassword
+// 	}
 
-var userPostHandler = withAdmin(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
-	req, err := getUser(w, r)
-	if err != nil {
-		return http.StatusBadRequest, err
-	}
+// 	req.Data.Password, err = users.HashPwd(req.Data.Password)
+// 	if err != nil {
+// 		return http.StatusInternalServerError, err
+// 	}
 
-	if len(req.Which) != 0 {
-		return http.StatusBadRequest, nil
-	}
+// 	userHome, err := d.settings.MakeUserDir(req.Data.Username, req.Data.Scope, d.server.Root)
+// 	if err != nil {
+// 		log.Printf("create user: failed to mkdir user home dir: [%s]", userHome)
+// 		return http.StatusInternalServerError, err
+// 	}
+// 	req.Data.Scope = userHome
+// 	log.Printf("user: %s, home dir: [%s].", req.Data.Username, userHome)
 
-	if req.Data.Password == "" {
-		return http.StatusBadRequest, errors.ErrEmptyPassword
-	}
+// 	err = d.store.Users.Save(req.Data)
+// 	if err != nil {
+// 		return http.StatusInternalServerError, err
+// 	}
 
-	req.Data.Password, err = users.HashPwd(req.Data.Password)
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
+// 	w.Header().Set("Location", "/settings/users/"+strconv.FormatUint(uint64(req.Data.ID), 10))
+// 	return http.StatusCreated, nil
+// })
 
-	userHome, err := d.settings.MakeUserDir(req.Data.Username, req.Data.Scope, d.server.Root)
-	if err != nil {
-		log.Printf("create user: failed to mkdir user home dir: [%s]", userHome)
-		return http.StatusInternalServerError, err
-	}
-	req.Data.Scope = userHome
-	log.Printf("user: %s, home dir: [%s].", req.Data.Username, userHome)
+// var userPutHandler = withSelfOrAdmin(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+// 	req, err := getUser(w, r)
+// 	if err != nil {
+// 		return http.StatusBadRequest, err
+// 	}
 
-	err = d.store.Users.Save(req.Data)
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
+// 	if req.Data.ID != d.raw.(uint) {
+// 		return http.StatusBadRequest, nil
+// 	}
 
-	w.Header().Set("Location", "/settings/users/"+strconv.FormatUint(uint64(req.Data.ID), 10))
-	return http.StatusCreated, nil
-})
+// 	if len(req.Which) == 0 || (len(req.Which) == 1 && req.Which[0] == "all") {
+// 		if !d.user.Perm.Admin {
+// 			return http.StatusForbidden, nil
+// 		}
 
-var userPutHandler = withSelfOrAdmin(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
-	req, err := getUser(w, r)
-	if err != nil {
-		return http.StatusBadRequest, err
-	}
+// 		if req.Data.Password != "" {
+// 			req.Data.Password, err = users.HashPwd(req.Data.Password)
+// 		} else {
+// 			var suser *users.User
+// 			suser, err = d.store.Users.Get(d.server.Root, d.raw.(uint))
+// 			req.Data.Password = suser.Password
+// 		}
 
-	if req.Data.ID != d.raw.(uint) {
-		return http.StatusBadRequest, nil
-	}
+// 		if err != nil {
+// 			return http.StatusInternalServerError, err
+// 		}
 
-	if len(req.Which) == 0 || (len(req.Which) == 1 && req.Which[0] == "all") {
-		if !d.user.Perm.Admin {
-			return http.StatusForbidden, nil
-		}
+// 		req.Which = []string{}
+// 	}
 
-		if req.Data.Password != "" {
-			req.Data.Password, err = users.HashPwd(req.Data.Password)
-		} else {
-			var suser *users.User
-			suser, err = d.store.Users.Get(d.server.Root, d.raw.(uint))
-			req.Data.Password = suser.Password
-		}
+// 	for k, v := range req.Which {
+// 		v = cases.Title(language.English, cases.NoLower).String(v)
+// 		req.Which[k] = v
 
-		if err != nil {
-			return http.StatusInternalServerError, err
-		}
+// 		if v == "Password" {
+// 			if !d.user.Perm.Admin && d.user.LockPassword {
+// 				return http.StatusForbidden, nil
+// 			}
 
-		req.Which = []string{}
-	}
+// 			req.Data.Password, err = users.HashPwd(req.Data.Password)
+// 			if err != nil {
+// 				return http.StatusInternalServerError, err
+// 			}
+// 		}
 
-	for k, v := range req.Which {
-		v = cases.Title(language.English, cases.NoLower).String(v)
-		req.Which[k] = v
+// 		for _, f := range NonModifiableFieldsForNonAdmin {
+// 			if !d.user.Perm.Admin && v == f {
+// 				return http.StatusForbidden, nil
+// 			}
+// 		}
+// 	}
 
-		if v == "Password" {
-			if !d.user.Perm.Admin && d.user.LockPassword {
-				return http.StatusForbidden, nil
-			}
+// 	err = d.store.Users.Update(req.Data, req.Which...)
+// 	if err != nil {
+// 		return http.StatusInternalServerError, err
+// 	}
 
-			req.Data.Password, err = users.HashPwd(req.Data.Password)
-			if err != nil {
-				return http.StatusInternalServerError, err
-			}
-		}
-
-		for _, f := range NonModifiableFieldsForNonAdmin {
-			if !d.user.Perm.Admin && v == f {
-				return http.StatusForbidden, nil
-			}
-		}
-	}
-
-	err = d.store.Users.Update(req.Data, req.Which...)
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
-
-	return http.StatusOK, nil
-})
+// 	return http.StatusOK, nil
+// })

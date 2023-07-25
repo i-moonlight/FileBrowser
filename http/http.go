@@ -52,12 +52,12 @@ func NewHandler(
 	api.Handle("/signup", monkey(signupHandler, ""))
 	api.Handle("/renew", monkey(renewHandler, ""))
 
-	users := api.PathPrefix("/users").Subrouter()
-	users.Handle("", monkey(usersGetHandler, "")).Methods("GET")
-	users.Handle("", monkey(userPostHandler, "")).Methods("POST")
-	users.Handle("/{id:[0-9]+}", monkey(userPutHandler, "")).Methods("PUT")
-	users.Handle("/{id:[0-9]+}", monkey(userGetHandler, "")).Methods("GET")
-	users.Handle("/{id:[0-9]+}", monkey(userDeleteHandler, "")).Methods("DELETE")
+	// users := api.PathPrefix("/users").Subrouter()
+	// users.Handle("", monkey(usersGetHandler, "")).Methods("GET")
+	// users.Handle("", monkey(userPostHandler, "")).Methods("POST")
+	// users.Handle("/{id:[0-9]+}", monkey(userPutHandler, "")).Methods("PUT")
+	// users.Handle("/{id:[0-9]+}", monkey(userGetHandler, "")).Methods("GET")
+	// users.Handle("/{id:[0-9]+}", monkey(userDeleteHandler, "")).Methods("DELETE")
 
 	api.PathPrefix("/resources").Handler(monkey(resourceGetHandler, "/api/resources")).Methods("GET")
 	api.PathPrefix("/resources").Handler(monkey(resourceDeleteHandler(fileCache), "/api/resources")).Methods("DELETE")

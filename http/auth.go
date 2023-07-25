@@ -91,15 +91,15 @@ func withUser(fn handleFunc) handleFunc {
 	}
 }
 
-func withAdmin(fn handleFunc) handleFunc {
-	return withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
-		if !d.user.Perm.Admin {
-			return http.StatusForbidden, nil
-		}
+// func withAdmin(fn handleFunc) handleFunc {
+// 	return withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+// 		if !d.user.Perm.Admin {
+// 			return http.StatusForbidden, nil
+// 		}
 
-		return fn(w, r, d)
-	})
-}
+// 		return fn(w, r, d)
+// 	})
+// }
 
 var loginHandler = func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
 	auther, err := d.store.Auth.Get(d.settings.AuthMethod)

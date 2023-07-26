@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"strconv"
 
-	rdb "github.com/redis/go-redis/v9"
 	"github.com/tomasen/realip"
 
 	"github.com/filebrowser/filebrowser/v2/rules"
 	"github.com/filebrowser/filebrowser/v2/runner"
 	"github.com/filebrowser/filebrowser/v2/settings"
 	"github.com/filebrowser/filebrowser/v2/storage"
+	"github.com/redis/go-redis/v9"
 )
 
 type handleFunc func(w http.ResponseWriter, r *http.Request, d *data) (int, error)
@@ -24,7 +24,7 @@ type data struct {
 	server   *settings.Server
 	store    *storage.Storage
 	token    *tokenStruct
-	redis    *rdb.Client
+	redis    *redis.Client
 	raw      interface{}
 }
 
@@ -65,6 +65,7 @@ func handle(fn handleFunc, prefix string, store *storage.Storage, server *settin
 			store:    store,
 			settings: settings,
 			server:   server,
+			redis:    redisInstance,
 		})
 
 		if status >= 400 || err != nil {
@@ -81,3 +82,15 @@ func handle(fn handleFunc, prefix string, store *storage.Storage, server *settin
 
 	return stripPrefix(prefix, handler)
 }
+
+func setupRedis() *redis.Client {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
+
+	return rdb
+}
+
+var redisInstance = setupRedis()

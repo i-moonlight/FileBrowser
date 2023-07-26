@@ -1,6 +1,8 @@
 package http
 
 import (
+	"context"
+	"encoding/json"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -13,9 +15,11 @@ import (
 	"github.com/filebrowser/filebrowser/v2/users"
 )
 
-const (
-	TokenExpirationTime = time.Hour * 2
-)
+// const (
+// 	TokenExpirationTime = time.Hour * 2
+// )
+
+var ctx = context.Background()
 
 type userInfo struct {
 	ID           uint              `json:"id"`
@@ -33,6 +37,11 @@ type userInfo struct {
 type authToken struct {
 	User userInfo `json:"user"`
 	jwt.RegisteredClaims
+}
+
+type RedisTokenInfo struct {
+	payload  authToken `json:"authToken"`
+	IsActive bool      `json:"isActive"`
 }
 
 const (
@@ -99,9 +108,21 @@ func withUser(fn handleFunc) handleFunc {
 			return http.StatusUnauthorized, nil
 		}
 
-		expired := !tk.VerifyExpiresAt(time.Now().Add(time.Hour), true)
+		expired := !tk.VerifyExpiresAt(time.Now(), true)
 
 		if expired {
+			return http.StatusUnauthorized, nil
+		}
+
+		val, err := d.redis.Get(ctx, token.Raw).Result()
+		if err != nil {
+			return http.StatusUnauthorized, nil
+		}
+
+		var rTokenInfo RedisTokenInfo
+		json.Unmarshal([]byte(val), &rTokenInfo)
+
+		if !rTokenInfo.IsActive {
 			return http.StatusUnauthorized, nil
 		}
 

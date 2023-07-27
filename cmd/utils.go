@@ -49,6 +49,11 @@ func generateKey() []byte {
 	return k
 }
 
+func isValidKey(keyString string) ([]byte, bool) {
+	byteKey, isValid := settings.IsValidKey(keyString)
+	return byteKey, isValid
+}
+
 type cobraFunc func(cmd *cobra.Command, args []string)
 type pythonFunc func(cmd *cobra.Command, args []string, data pythonData)
 

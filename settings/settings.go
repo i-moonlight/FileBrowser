@@ -2,6 +2,7 @@ package settings
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"strings"
 
 	"github.com/filebrowser/filebrowser/v2/rules"
@@ -48,6 +49,7 @@ type Server struct {
 	AuthHook              string `json:"authHook"`
 	RedisUrl              string `json:"redisUrl"`
 	RedisPassword         string `json:"redisPassword"`
+	TokenSecret           string `json:"tokenSecret"`
 }
 
 // Clean cleans any variables that might need cleaning.
@@ -65,4 +67,13 @@ func GenerateKey() ([]byte, error) {
 	}
 
 	return b, nil
+}
+
+func IsValidKey(keyString string) ([]byte, bool) {
+	decodedKey, err := base64.StdEncoding.DecodeString(keyString)
+	if err != nil {
+		return decodedKey, false
+	}
+
+	return decodedKey, len(decodedKey) == 64
 }

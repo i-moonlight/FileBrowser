@@ -63,6 +63,7 @@ func addServerFlags(flags *pflag.FlagSet) {
 	flags.StringP("root", "r", ".", "root to prepend to relative paths")
 	flags.StringP("redis_url", "", "localhost:6379", "url to redis server")
 	flags.StringP("redis_password", "", "", "password to redis server")
+	flags.StringP("token_secret", "", "", "secret key to decrypt token")
 	flags.String("socket", "", "socket to listen to (cannot be used with address, port, cert nor key flags)")
 	flags.Uint32("socket-perm", 0666, "unix socket file permissions") //nolint:gomnd
 	flags.StringP("baseurl", "b", "", "base url")
@@ -257,6 +258,10 @@ func getRunParams(flags *pflag.FlagSet, st *storage.Storage) *settings.Server {
 		server.RedisPassword = val
 	}
 
+	if val, set := getParamB(flags, "token_secret"); set {
+		server.TokenSecret = val
+	}
+
 	if isAddrSet && isSocketSet {
 		checkErr(errors.New("--socket flag cannot be used with --address, --port, --key nor --cert"))
 	}
@@ -329,8 +334,15 @@ func setupLog(logMethod string) {
 }
 
 func quickSetup(flags *pflag.FlagSet, d pythonData) {
+	tokenSecret, _ := getParamB(flags, "token_secret")
+
+	byteSecret, isValidSecret := isValidKey(tokenSecret)
+	if !isValidSecret {
+		panic("token secret is not base64 string with 64 bytes length")
+	}
+
 	set := &settings.Settings{
-		Key:              generateKey(),
+		Key:              byteSecret,
 		Signup:           false,
 		CreateUserDir:    false,
 		UserHomeBasePath: settings.DefaultUsersHomeBasePath,

@@ -16,6 +16,7 @@ import (
 	"github.com/filebrowser/filebrowser/v2/settings"
 	"github.com/filebrowser/filebrowser/v2/storage"
 	"github.com/filebrowser/filebrowser/v2/version"
+	"github.com/redis/go-redis/v9"
 )
 
 func handleWithStaticData(w http.ResponseWriter, _ *http.Request, d *data, fSys fs.FS, file, contentType string) (int, error) {
@@ -97,7 +98,7 @@ func handleWithStaticData(w http.ResponseWriter, _ *http.Request, d *data, fSys 
 	return 0, nil
 }
 
-func getStaticHandlers(store *storage.Storage, server *settings.Server, assetsFs fs.FS) (index, static http.Handler) {
+func getStaticHandlers(store *storage.Storage, server *settings.Server, assetsFs fs.FS, rdb *redis.Client) (index, static http.Handler) {
 	index = handle(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
 		if r.Method != http.MethodGet {
 			return http.StatusNotFound, nil
@@ -105,7 +106,7 @@ func getStaticHandlers(store *storage.Storage, server *settings.Server, assetsFs
 
 		w.Header().Set("x-xss-protection", "1; mode=block")
 		return handleWithStaticData(w, r, d, assetsFs, "index.html", "text/html; charset=utf-8")
-	}, "", store, server)
+	}, "", store, server, rdb)
 
 	static = handle(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
 		if r.Method != http.MethodGet {
@@ -146,7 +147,7 @@ func getStaticHandlers(store *storage.Storage, server *settings.Server, assetsFs
 		}
 
 		return 0, nil
-	}, "/static/", store, server)
+	}, "/static/", store, server, rdb)
 
 	return index, static
 }

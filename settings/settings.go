@@ -46,6 +46,8 @@ type Server struct {
 	EnableExec            bool   `json:"enableExec"`
 	TypeDetectionByHeader bool   `json:"typeDetectionByHeader"`
 	AuthHook              string `json:"authHook"`
+	RedisUrl              string `json:"redisUrl"`
+	RedisPassword         string `json:"redisPassword"`
 }
 
 // Clean cleans any variables that might need cleaning.

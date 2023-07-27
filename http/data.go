@@ -50,7 +50,7 @@ func (d *data) Check(path string) bool {
 	return allow
 }
 
-func handle(fn handleFunc, prefix string, store *storage.Storage, server *settings.Server) http.Handler {
+func handle(fn handleFunc, prefix string, store *storage.Storage, server *settings.Server, rdb *redis.Client) http.Handler {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 
@@ -65,7 +65,7 @@ func handle(fn handleFunc, prefix string, store *storage.Storage, server *settin
 			store:    store,
 			settings: settings,
 			server:   server,
-			redis:    redisInstance,
+			redis:    rdb,
 		})
 
 		if status >= 400 || err != nil {
@@ -82,15 +82,3 @@ func handle(fn handleFunc, prefix string, store *storage.Storage, server *settin
 
 	return stripPrefix(prefix, handler)
 }
-
-func setupRedis() *redis.Client {
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
-
-	return rdb
-}
-
-var redisInstance = setupRedis()

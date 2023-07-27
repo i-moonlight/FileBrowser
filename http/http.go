@@ -8,6 +8,7 @@ import (
 
 	"github.com/filebrowser/filebrowser/v2/settings"
 	"github.com/filebrowser/filebrowser/v2/storage"
+	"github.com/redis/go-redis/v9"
 )
 
 // type modifyRequest struct {
@@ -21,6 +22,7 @@ func NewHandler(
 	store *storage.Storage,
 	server *settings.Server,
 	assetsFs fs.FS,
+	rdb *redis.Client,
 ) (http.Handler, error) {
 	server.Clean()
 
@@ -31,7 +33,7 @@ func NewHandler(
 			next.ServeHTTP(w, r)
 		})
 	})
-	index, static := getStaticHandlers(store, server, assetsFs)
+	index, static := getStaticHandlers(store, server, assetsFs, rdb)
 
 	// NOTE: This fixes the issue where it would redirect if people did not put a
 	// trailing slash in the end. I hate this decision since this allows some awful
@@ -39,7 +41,7 @@ func NewHandler(
 	r = r.SkipClean(true)
 
 	monkey := func(fn handleFunc, prefix string) http.Handler {
-		return handle(fn, prefix, store, server)
+		return handle(fn, prefix, store, server, rdb)
 	}
 
 	r.HandleFunc("/health", healthHandler)

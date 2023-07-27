@@ -15,6 +15,7 @@ import (
 	"syscall"
 
 	homedir "github.com/mitchellh/go-homedir"
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -60,6 +61,8 @@ func addServerFlags(flags *pflag.FlagSet) {
 	flags.StringP("cert", "t", "", "tls certificate")
 	flags.StringP("key", "k", "", "tls key")
 	flags.StringP("root", "r", ".", "root to prepend to relative paths")
+	flags.StringP("redis_url", "", "localhost:6379", "url to redis server")
+	flags.StringP("redis_password", "", "", "password to redis server")
 	flags.String("socket", "", "socket to listen to (cannot be used with address, port, cert nor key flags)")
 	flags.Uint32("socket-perm", 0666, "unix socket file permissions") //nolint:gomnd
 	flags.StringP("baseurl", "b", "", "base url")
@@ -175,7 +178,13 @@ user created with the credentials from options "username" and "password".`,
 			panic(err)
 		}
 
-		handler, err := fbhttp.NewHandler(imgSvc, fileCache, d.store, server, assetsFs)
+		rdb := redis.NewClient(&redis.Options{
+			Addr:     server.RedisUrl,
+			Password: server.RedisPassword, // no password set
+			DB:       0,                    // use default DB
+		})
+
+		handler, err := fbhttp.NewHandler(imgSvc, fileCache, d.store, server, assetsFs, rdb)
 		checkErr(err)
 
 		defer listener.Close()
@@ -238,6 +247,14 @@ func getRunParams(flags *pflag.FlagSet, st *storage.Storage) *settings.Server {
 	if val, set := getParamB(flags, "socket"); set {
 		server.Socket = val
 		isSocketSet = isSocketSet || set
+	}
+
+	if val, set := getParamB(flags, "redis_url"); set {
+		server.RedisUrl = val
+	}
+
+	if val, set := getParamB(flags, "redis_password"); set {
+		server.RedisPassword = val
 	}
 
 	if isAddrSet && isSocketSet {

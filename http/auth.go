@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -21,17 +22,30 @@ import (
 
 var ctx = context.Background()
 
+type EncryptedCredentials struct {
+	Iv            string `json:"iv"`
+	EncryptedData string `json:"encryptedData"`
+}
+
+type DecryptedCredentials struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Type     string `json:"type"`
+	OU       string `json:"OU"`
+	Hostname string `json:"hostname"`
+}
+
 type userInfo struct {
-	ID           uint              `json:"id"`
-	Locale       string            `json:"locale"`
-	ViewMode     users.ViewMode    `json:"viewMode"`
-	SingleClick  bool              `json:"singleClick"`
-	Perm         users.Permissions `json:"perm"`
-	Commands     []string          `json:"commands"`
-	LockPassword bool              `json:"lockPassword"`
-	HideDotfiles bool              `json:"hideDotfiles"`
-	DateFormat   bool              `json:"dateFormat"`
-	Scope        string            `json:"scope"`
+	Locale               string               `json:"locale"`
+	ViewMode             users.ViewMode       `json:"viewMode"`
+	SingleClick          bool                 `json:"singleClick"`
+	Perm                 users.Permissions    `json:"perm"`
+	Commands             []string             `json:"commands"`
+	LockPassword         bool                 `json:"lockPassword"`
+	HideDotfiles         bool                 `json:"hideDotfiles"`
+	DateFormat           bool                 `json:"dateFormat"`
+	Scope                string               `json:"scope"`
+	EncryptedCredentials EncryptedCredentials `json:"credentials"`
 }
 
 type authToken struct {
@@ -40,7 +54,7 @@ type authToken struct {
 }
 
 type RedisTokenInfo struct {
-	payload  authToken `json:"authToken"`
+	Payload  authToken `json:"authToken"`
 	IsActive bool      `json:"isActive"`
 }
 
@@ -104,16 +118,19 @@ func withUser(fn handleFunc) handleFunc {
 		var tk authToken
 		token, err := request.ParseFromRequest(r, &extractor{}, keyFunc, request.WithClaims(&tk))
 
+		// Check is token valid
 		if err != nil || !token.Valid {
 			return http.StatusUnauthorized, nil
 		}
 
+		// Check token expiration
 		expired := !tk.VerifyExpiresAt(time.Now(), true)
 
 		if expired {
 			return http.StatusUnauthorized, nil
 		}
 
+		// Check session in Redis
 		val, err := d.redis.Get(ctx, token.Raw).Result()
 		if err != nil {
 			return http.StatusUnauthorized, nil
@@ -125,6 +142,19 @@ func withUser(fn handleFunc) handleFunc {
 		if !rTokenInfo.IsActive {
 			return http.StatusUnauthorized, nil
 		}
+
+		// Decrypt credentials data
+		decryptedCredentials, err := decryptData(tk.User.EncryptedCredentials.EncryptedData, d.server.TokenCredentialsSecret, tk.User.EncryptedCredentials.Iv)
+		if err != nil {
+			return http.StatusUnauthorized, nil
+		}
+
+		jsonString := string(decryptedCredentials)
+
+		var credentials DecryptedCredentials
+		json.Unmarshal([]byte(jsonString), &credentials)
+
+		fmt.Println("Decrypted Credentials:", credentials)
 
 		// d.user, err = d.store.Users.Get(d.server.Root, tk.User.ID)
 		// if err != nil {
@@ -147,6 +177,10 @@ func withUser(fn handleFunc) handleFunc {
 		return fn(w, r, d)
 	}
 }
+
+var checkTokenHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+	return http.StatusOK, nil
+})
 
 // func withAdmin(fn handleFunc) handleFunc {
 // 	return withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
@@ -232,10 +266,6 @@ func withUser(fn handleFunc) handleFunc {
 // var renewHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
 // 	return printToken(w, r, d, d.user)
 // })
-
-var checkTokenHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
-	return http.StatusOK, nil
-})
 
 // func printToken(w http.ResponseWriter, _ *http.Request, d *data, user *users.User) (int, error) {
 // 	claims := &authToken{

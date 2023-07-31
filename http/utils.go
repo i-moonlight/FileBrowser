@@ -1,6 +1,12 @@
 package http
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/sha256"
+	"fmt"
+
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -65,4 +71,55 @@ func stripPrefix(prefix string, h http.Handler) http.Handler {
 		r2.URL.RawPath = rp
 		h.ServeHTTP(w, r2)
 	})
+}
+
+func generateKey(passphrase string) []byte {
+	hash := sha256.Sum256([]byte(passphrase))
+	return hash[:]
+}
+
+func decryptData(encryptedData string, key string, iv string) ([]byte, error) {
+	ivBytes, err := hex.DecodeString(iv)
+	if err != nil {
+		return nil, err
+	}
+
+	ciphertext, err := hex.DecodeString(encryptedData)
+	if err != nil {
+		return nil, err
+	}
+
+	byteKey := generateKey(key)
+
+	block, err := aes.NewCipher(byteKey)
+	if err != nil {
+		return nil, err
+	}
+
+	mode := cipher.NewCBCDecrypter(block, ivBytes)
+	mode.CryptBlocks(ciphertext, ciphertext)
+
+	// Remove padding
+	ciphertext, err = unpadPKCS7(ciphertext)
+	if err != nil {
+		return nil, err
+	}
+
+	return ciphertext, nil
+}
+
+// unpadPKCS7 removes PKCS#7 padding from the decrypted data.
+func unpadPKCS7(data []byte) ([]byte, error) {
+	padding := int(data[len(data)-1])
+	if padding > len(data) || padding == 0 {
+		return nil, fmt.Errorf("invalid padding")
+	}
+
+	for i := len(data) - padding; i < len(data); i++ {
+		if data[i] != byte(padding) {
+			return nil, fmt.Errorf("invalid padding")
+		}
+	}
+
+	return data[:len(data)-padding], nil
 }

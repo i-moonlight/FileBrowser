@@ -64,6 +64,7 @@ func addServerFlags(flags *pflag.FlagSet) {
 	flags.StringP("redis_url", "", "localhost:6379", "url to redis server")
 	flags.StringP("redis_password", "", "", "password to redis server")
 	flags.StringP("token_secret", "", "", "secret key to decrypt token")
+	flags.StringP("token_credentials_secret", "", "", "secret key to decrypt token credentials (payload)")
 	flags.String("socket", "", "socket to listen to (cannot be used with address, port, cert nor key flags)")
 	flags.Uint32("socket-perm", 0666, "unix socket file permissions") //nolint:gomnd
 	flags.StringP("baseurl", "b", "", "base url")
@@ -260,6 +261,10 @@ func getRunParams(flags *pflag.FlagSet, st *storage.Storage) *settings.Server {
 
 	if val, set := getParamB(flags, "token_secret"); set {
 		server.TokenSecret = val
+	}
+
+	if val, set := getParamB(flags, "token_credentials_secret"); set {
+		server.TokenCredentialsSecret = val
 	}
 
 	if isAddrSet && isSocketSet {

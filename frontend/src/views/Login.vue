@@ -65,7 +65,7 @@ export default {
   // data: function () {
   //   return {
   //     createMode: false,
-  //     error: "",
+      // error: null,
   //     username: "",
   //     password: "",
   //     recaptcha: recaptcha,
@@ -76,8 +76,12 @@ export default {
     const token = this.$route.query.token
     if (token) {
       auth.logout(false)
-      await auth.checkToken(token)
-      await this.$router.push('/files')
+      try {
+        await auth.checkToken(token)
+        await this.$router.push('/files')
+      } catch (error) {
+        this.$toast.error("Unauthorized");
+      }
     }
   },
   // mounted() {

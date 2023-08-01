@@ -4,9 +4,12 @@ import VueLazyload from "vue-lazyload";
 import i18n from "@/i18n";
 import { disableExternal } from "@/utils/constants";
 import AsyncComputed from "vue-async-computed";
+import Toast from "vue-toastification";
+import "vue-toastification/dist/index.css";
 
 Vue.use(VueLazyload);
 Vue.use(AsyncComputed);
+Vue.use(Toast, { timeout: 2500 });
 
 Vue.config.productionTip = true;
 

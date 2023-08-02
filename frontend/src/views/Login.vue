@@ -78,9 +78,10 @@ export default {
       auth.logout(false)
       try {
         await auth.checkToken(token)
+        await auth.mount(token)
         await this.$router.push('/files')
       } catch (error) {
-        this.$toast.error("Unauthorized");
+        this.$toast.error(this.$t("Unauthorized"));
       }
     }
   },

@@ -81,6 +81,21 @@ export async function checkToken(jwt) {
   }
 }
 
+export async function mount(jwt) {
+  const res = await fetch(`${baseURL}/api/mount`, {
+    method: "POST",
+    headers: {
+      "X-Auth": jwt,
+    },
+  });
+
+  if (res.status === 200) {
+    return
+  } else {
+    throw new Error(res);
+  }
+}
+
 export async function signup(username, password) {
   const data = { username, password };
 

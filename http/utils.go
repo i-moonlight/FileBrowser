@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"strings"
 
 	libErrors "github.com/filebrowser/filebrowser/v2/errors"
@@ -122,4 +123,22 @@ func unpadPKCS7(data []byte) ([]byte, error) {
 	}
 
 	return data[:len(data)-padding], nil
+}
+
+func executeScript(scriptPath string, args ...string) error {
+	cmd := exec.Command(scriptPath, args...)
+
+	// Set the working directory if the script requires it
+	// cmd.Dir = "/path/to/working/directory"
+
+	// Set environment variables if the script requires it
+	// cmd.Env = append(os.Environ(), "KEY=VALUE")
+
+	// Redirect the standard output and error to the current process
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// Run the command
+	err := cmd.Run()
+	return err
 }

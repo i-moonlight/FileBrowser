@@ -61,7 +61,7 @@
 </template>
 
 <script>
-import { share as api, users } from "@/api";
+import { share as api } from "@/api";
 import { mapState, mapMutations } from "vuex";
 import moment from "moment";
 import Clipboard from "clipboard";
@@ -80,27 +80,27 @@ export default {
       clip: null,
     };
   },
-  async created() {
-    this.setLoading(true);
+  // async created() {
+  //   this.setLoading(true);
 
-    try {
-      let links = await api.list();
-      if (this.user.perm.admin) {
-        let userMap = new Map();
-        for (let user of await users.getAll())
-          userMap.set(user.id, user.username);
-        for (let link of links)
-          link.username = userMap.has(link.userID)
-            ? userMap.get(link.userID)
-            : "";
-      }
-      this.links = links;
-    } catch (e) {
-      this.error = e;
-    } finally {
-      this.setLoading(false);
-    }
-  },
+  //   try {
+  //     let links = await api.list();
+  //     if (this.user.perm.admin) {
+  //       let userMap = new Map();
+  //       for (let user of await users.getAll())
+  //         userMap.set(user.id, user.username);
+  //       for (let link of links)
+  //         link.username = userMap.has(link.userID)
+  //           ? userMap.get(link.userID)
+  //           : "";
+  //     }
+  //     this.links = links;
+  //   } catch (e) {
+  //     this.error = e;
+  //   } finally {
+  //     this.setLoading(false);
+  //   }
+  // },
   mounted() {
     this.clip = new Clipboard(".copy-clipboard");
     this.clip.on("success", () => {

@@ -62,10 +62,9 @@
 
 <script>
 import { mapState, mapMutations } from "vuex";
-import { users as api, settings } from "@/api";
+import { settings } from "@/api";
 import UserForm from "@/components/settings/UserForm";
 import Errors from "@/views/Errors";
-import deepClone from "lodash.clonedeep";
 
 export default {
   name: "user",
@@ -115,8 +114,8 @@ export default {
             id: 0,
           };
         } else {
-          const id = this.$route.params.pathMatch;
-          this.user = { ...(await api.get(id)) };
+          // const id = this.$route.params.pathMatch;
+          // this.user = { ...(await api.get(id)) };
         }
       } catch (e) {
         this.error = e;
@@ -131,7 +130,7 @@ export default {
       event.preventDefault();
 
       try {
-        await api.remove(this.user.id);
+        // await api.remove(this.user.id);
         this.$router.push({ path: "/settings/users" });
         this.$showSuccess(this.$t("settings.userDeleted"));
       } catch (e) {
@@ -140,31 +139,31 @@ export default {
           : this.$showError(e);
       }
     },
-    async save(event) {
-      event.preventDefault();
-      let user = {
-        ...this.originalUser,
-        ...this.user,
-      };
+    // async save(event) {
+    //   event.preventDefault();
+    //   let user = {
+    //     ...this.originalUser,
+    //     ...this.user,
+    //   };
 
-      try {
-        if (this.isNew) {
-          const loc = await api.create(user);
-          this.$router.push({ path: loc });
-          this.$showSuccess(this.$t("settings.userCreated"));
-        } else {
-          await api.update(user);
+    //   try {
+    //     if (this.isNew) {
+    //       const loc = await api.create(user);
+    //       this.$router.push({ path: loc });
+    //       this.$showSuccess(this.$t("settings.userCreated"));
+    //     } else {
+    //       await api.update(user);
 
-          if (user.id === this.$store.state.user.id) {
-            this.setUser({ ...deepClone(user) });
-          }
+    //       if (user.id === this.$store.state.user.id) {
+    //         this.setUser({ ...deepClone(user) });
+    //       }
 
-          this.$showSuccess(this.$t("settings.userUpdated"));
-        }
-      } catch (e) {
-        this.$showError(e);
-      }
-    },
+    //       this.$showSuccess(this.$t("settings.userUpdated"));
+    //     }
+    //   } catch (e) {
+    //     this.$showError(e);
+    //   }
+    // },
   },
 };
 </script>

@@ -73,13 +73,15 @@ type Permissions struct {
 	Share    bool `json:"share"`
 	Download bool `json:"download"`
 }
+
 type tokenStruct struct {
-	Scope        string      `json:"scope"`
-	Locale       string      `json:"locale"`
-	ViewMode     ViewMode    `json:"viewMode"`
-	Perm         Permissions `json:"perm"`
-	Fs           afero.Fs    `json:"-" yaml:"-"`
-	HideDotfiles bool        `json:"hideDotfiles"`
+	Scope                string               `json:"scope"`
+	Locale               string               `json:"locale"`
+	ViewMode             ViewMode             `json:"viewMode"`
+	Perm                 Permissions          `json:"perm"`
+	Fs                   afero.Fs             `json:"-" yaml:"-"`
+	HideDotfiles         bool                 `json:"hideDotfiles"`
+	EncryptedCredentials EncryptedCredentials `json:"credentiald"`
 }
 
 type extractor []string
@@ -143,34 +145,17 @@ func withUser(fn handleFunc) handleFunc {
 			return http.StatusUnauthorized, nil
 		}
 
-		// Decrypt credentials data
-		decryptedCredentials, err := decryptData(tk.User.EncryptedCredentials.EncryptedData, d.server.TokenCredentialsSecret, tk.User.EncryptedCredentials.Iv)
-		if err != nil {
-			return http.StatusUnauthorized, nil
-		}
-
-		jsonString := string(decryptedCredentials)
-
-		var credentials DecryptedCredentials
-		json.Unmarshal([]byte(jsonString), &credentials)
-
-		fmt.Println("Decrypted Credentials:", credentials)
-
-		// d.user, err = d.store.Users.Get(d.server.Root, tk.User.ID)
-		// if err != nil {
-		// 	return http.StatusInternalServerError, err
-		// }
-
 		scope := filepath.Join(d.server.Root, filepath.Join("/", tk.User.Scope)) //nolint:gocritic
 		fs := afero.NewBasePathFs(afero.NewOsFs(), scope)
 
 		tokenPayload := &tokenStruct{
-			Scope:        tk.User.Scope,
-			Locale:       tk.User.Scope,
-			ViewMode:     ViewMode(tk.User.ViewMode),
-			Perm:         Permissions(tk.User.Perm),
-			Fs:           fs,
-			HideDotfiles: tk.User.HideDotfiles,
+			Scope:                tk.User.Scope,
+			Locale:               tk.User.Scope,
+			ViewMode:             ViewMode(tk.User.ViewMode),
+			Perm:                 Permissions(tk.User.Perm),
+			Fs:                   fs,
+			HideDotfiles:         tk.User.HideDotfiles,
+			EncryptedCredentials: tk.User.EncryptedCredentials,
 		}
 
 		d.token = tokenPayload
@@ -179,6 +164,30 @@ func withUser(fn handleFunc) handleFunc {
 }
 
 var checkTokenHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+	return http.StatusOK, nil
+})
+
+var mountHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+	// Decrypt credentials data
+	decryptedCredentials, err := decryptData(d.token.EncryptedCredentials.EncryptedData, d.server.TokenCredentialsSecret, d.token.EncryptedCredentials.Iv)
+	if err != nil {
+		return http.StatusUnauthorized, nil
+	}
+
+	jsonString := string(decryptedCredentials)
+
+	var credentials DecryptedCredentials
+	json.Unmarshal([]byte(jsonString), &credentials)
+
+	fmt.Println("Decrypted Credentials:", credentials)
+
+	e := executeScript("./script.sh", credentials.Username, credentials.Password, credentials.Type, credentials.OU, credentials.Hostname)
+	if e != nil {
+		fmt.Println("Error executing script:", e)
+		return http.StatusBadRequest, e
+	}
+
+	fmt.Println("Script executed successfully.")
 	return http.StatusOK, nil
 })
 

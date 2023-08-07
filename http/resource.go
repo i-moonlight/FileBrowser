@@ -215,9 +215,9 @@ func resourcePatchHandler(fileCache FileCache) handleFunc {
 				return http.StatusConflict, nil
 			}
 		}
-		if rename {
-			dst = addVersionSuffix(dst, d.token.Fs)
-		}
+		// if rename {
+		// 	dst = addVersionSuffix(dst, d.token.Fs)
+		// }
 
 		// Permission for overwriting the file
 		if override && !d.token.Perm.Modify {

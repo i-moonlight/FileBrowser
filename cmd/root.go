@@ -398,30 +398,6 @@ func quickSetup(flags *pflag.FlagSet, d pythonData) {
 
 	err = d.store.Settings.SaveServer(ser)
 	checkErr(err)
-
-	username := getParam(flags, "username")
-	password := getParam(flags, "password")
-
-	if password == "" {
-		password, err = users.HashPwd("admin")
-		checkErr(err)
-	}
-
-	if username == "" || password == "" {
-		log.Fatal("username and password cannot be empty during quick setup")
-	}
-
-	user := &users.User{
-		Username:     username,
-		Password:     password,
-		LockPassword: false,
-	}
-
-	set.Defaults.Apply(user)
-	user.Perm.Admin = true
-
-	err = d.store.Users.Save(user)
-	checkErr(err)
 }
 
 func initConfig() {

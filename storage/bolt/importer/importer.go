@@ -25,11 +25,6 @@ func Import(oldDBPath, oldConf, newDBPath string) error {
 		return err
 	}
 
-	err = importUsers(oldDB, sto)
-	if err != nil {
-		return err
-	}
-
 	err = importConf(oldDB, oldConf, sto)
 	if err != nil {
 		return err

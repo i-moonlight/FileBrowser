@@ -2,7 +2,6 @@ package auth
 
 import (
 	"github.com/filebrowser/filebrowser/v2/settings"
-	"github.com/filebrowser/filebrowser/v2/users"
 )
 
 // StorageBackend is a storage backend for auth storage.
@@ -13,13 +12,12 @@ type StorageBackend interface {
 
 // Storage is a auth storage.
 type Storage struct {
-	back  StorageBackend
-	users *users.Storage
+	back StorageBackend
 }
 
 // NewStorage creates a auth storage from a backend.
-func NewStorage(back StorageBackend, userStore *users.Storage) *Storage {
-	return &Storage{back: back, users: userStore}
+func NewStorage(back StorageBackend) *Storage {
+	return &Storage{back: back}
 }
 
 // Get wraps a StorageBackend.Get.

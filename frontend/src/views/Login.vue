@@ -22,17 +22,16 @@
 <script>
 import * as auth from "@/utils/auth";
 import { mapState, mapMutations } from "vuex";
-import {
-  name,
-  logoURL,
-} from "@/utils/constants";
+import { name, logoURL } from "@/utils/constants";
 
 export default {
   name: "login",
   computed: {
     ...mapState(["loading"]),
     name: () => name,
-    logoURL: () => logoURL,
+    logoUrl: () => {
+      return logoURL
+    }
   },
   async created() {
     const token = this.$route.query.token
@@ -42,8 +41,8 @@ export default {
       try {
         await auth.checkToken(token)
         await auth.mount(token)
-        await this.$router.push('/files')
-        this.$toast.success('Welcome')
+        await this.$router.push("/files")
+        this.$toast.success("Welcome")
       } catch (error) {
         this.$toast.error(this.$t("Unauthorized"))
       } finally {

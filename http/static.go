@@ -22,11 +22,6 @@ import (
 func handleWithStaticData(w http.ResponseWriter, _ *http.Request, d *data, fSys fs.FS, file, contentType string) (int, error) {
 	w.Header().Set("Content-Type", contentType)
 
-	auther, err := d.store.Auth.Get(d.settings.AuthMethod)
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
-
 	data := map[string]interface{}{
 		"Name":                  d.settings.Branding.Name,
 		"DisableExternal":       d.settings.Branding.DisableExternal,
@@ -38,7 +33,6 @@ func handleWithStaticData(w http.ResponseWriter, _ *http.Request, d *data, fSys 
 		"Signup":                d.settings.Signup,
 		"NoAuth":                d.settings.AuthMethod == auth.MethodNoAuth,
 		"AuthMethod":            d.settings.AuthMethod,
-		"LoginPage":             auther.LoginPage(),
 		"CSS":                   false,
 		"ReCaptcha":             false,
 		"Theme":                 d.settings.Branding.Theme,
@@ -57,21 +51,6 @@ func handleWithStaticData(w http.ResponseWriter, _ *http.Request, d *data, fSys 
 
 		if err == nil {
 			data["CSS"] = true
-		}
-	}
-
-	if d.settings.AuthMethod == auth.MethodJSONAuth {
-		raw, err := d.store.Auth.Get(d.settings.AuthMethod) //nolint:govet
-		if err != nil {
-			return http.StatusInternalServerError, err
-		}
-
-		auther := raw.(*auth.JSONAuth)
-
-		if auther.ReCaptcha != nil {
-			data["ReCaptcha"] = auther.ReCaptcha.Key != "" && auther.ReCaptcha.Secret != ""
-			data["ReCaptchaHost"] = auther.ReCaptcha.Host
-			data["ReCaptchaKey"] = auther.ReCaptcha.Key
 		}
 	}
 

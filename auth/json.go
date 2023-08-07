@@ -4,59 +4,17 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/filebrowser/filebrowser/v2/settings"
-	"github.com/filebrowser/filebrowser/v2/users"
 )
 
 // MethodJSONAuth is used to identify json auth.
 const MethodJSONAuth settings.AuthMethod = "json"
 
-type jsonCred struct {
-	Password  string `json:"password"`
-	Username  string `json:"username"`
-	ReCaptcha string `json:"recaptcha"`
-}
-
 // JSONAuth is a json implementation of an Auther.
 type JSONAuth struct {
 	ReCaptcha *ReCaptcha `json:"recaptcha" yaml:"recaptcha"`
-}
-
-// Auth authenticates the user via a json in content body.
-func (a JSONAuth) Auth(r *http.Request, usr users.Store, stg *settings.Settings, srv *settings.Server) (*users.User, error) {
-	var cred jsonCred
-
-	if r.Body == nil {
-		return nil, os.ErrPermission
-	}
-
-	err := json.NewDecoder(r.Body).Decode(&cred)
-	if err != nil {
-		return nil, os.ErrPermission
-	}
-
-	// If ReCaptcha is enabled, check the code.
-	if a.ReCaptcha != nil && len(a.ReCaptcha.Secret) > 0 {
-		ok, err := a.ReCaptcha.Ok(cred.ReCaptcha) //nolint:govet
-
-		if err != nil {
-			return nil, err
-		}
-
-		if !ok {
-			return nil, os.ErrPermission
-		}
-	}
-
-	u, err := usr.Get(srv.Root, cred.Username)
-	if err != nil || !users.CheckPwd(cred.Password, u.Password) {
-		return nil, os.ErrPermission
-	}
-
-	return u, nil
 }
 
 // LoginPage tells that json auth doesn't require a login page.

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	nerrors "errors"
 	"fmt"
 	"os"
 	"strings"
@@ -12,7 +11,6 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/filebrowser/filebrowser/v2/auth"
-	"github.com/filebrowser/filebrowser/v2/errors"
 	"github.com/filebrowser/filebrowser/v2/settings"
 )
 
@@ -46,95 +44,6 @@ func addConfigFlags(flags *pflag.FlagSet) {
 	flags.String("branding.files", "", "path to directory with images and custom styles")
 	flags.Bool("branding.disableExternal", false, "disable external links such as GitHub links")
 	flags.Bool("branding.disableUsedPercentage", false, "disable used disk percentage graph")
-}
-
-//nolint:gocyclo
-func getAuthentication(flags *pflag.FlagSet, defaults ...interface{}) (settings.AuthMethod, auth.Auther) {
-	method := settings.AuthMethod(mustGetString(flags, "auth.method"))
-
-	var defaultAuther map[string]interface{}
-	if len(defaults) > 0 {
-		if hasAuth := defaults[0]; hasAuth != true {
-			for _, arg := range defaults {
-				switch def := arg.(type) {
-				case *settings.Settings:
-					method = def.AuthMethod
-				case auth.Auther:
-					ms, err := json.Marshal(def)
-					checkErr(err)
-					err = json.Unmarshal(ms, &defaultAuther)
-					checkErr(err)
-				}
-			}
-		}
-	}
-
-	var auther auth.Auther
-	if method == auth.MethodProxyAuth {
-		header := mustGetString(flags, "auth.header")
-
-		if header == "" {
-			header = defaultAuther["header"].(string)
-		}
-
-		if header == "" {
-			checkErr(nerrors.New("you must set the flag 'auth.header' for method 'proxy'"))
-		}
-
-		auther = &auth.ProxyAuth{Header: header}
-	}
-
-	if method == auth.MethodNoAuth {
-		auther = &auth.NoAuth{}
-	}
-
-	if method == auth.MethodJSONAuth {
-		jsonAuth := &auth.JSONAuth{}
-		host := mustGetString(flags, "recaptcha.host")
-		key := mustGetString(flags, "recaptcha.key")
-		secret := mustGetString(flags, "recaptcha.secret")
-
-		if key == "" {
-			if kmap, ok := defaultAuther["recaptcha"].(map[string]interface{}); ok {
-				key = kmap["key"].(string)
-			}
-		}
-
-		if secret == "" {
-			if smap, ok := defaultAuther["recaptcha"].(map[string]interface{}); ok {
-				secret = smap["secret"].(string)
-			}
-		}
-
-		if key != "" && secret != "" {
-			jsonAuth.ReCaptcha = &auth.ReCaptcha{
-				Host:   host,
-				Key:    key,
-				Secret: secret,
-			}
-		}
-		auther = jsonAuth
-	}
-
-	if method == auth.MethodHookAuth {
-		command := mustGetString(flags, "auth.command")
-
-		if command == "" {
-			command = defaultAuther["command"].(string)
-		}
-
-		if command == "" {
-			checkErr(nerrors.New("you must set the flag 'auth.command' for method 'hook'"))
-		}
-
-		auther = &auth.HookAuth{Command: command}
-	}
-
-	if auther == nil {
-		panic(errors.ErrInvalidAuthMethod)
-	}
-
-	return method, auther
 }
 
 func printSettings(ser *settings.Server, set *settings.Settings, auther auth.Auther) {

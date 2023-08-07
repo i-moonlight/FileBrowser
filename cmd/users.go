@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"strconv"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -20,14 +19,6 @@ var usersCmd = &cobra.Command{
 	Short: "Users management utility",
 	Long:  `Users management utility.`,
 	Args:  cobra.NoArgs,
-}
-
-func parseUsernameOrID(arg string) (username string, id uint) {
-	id64, err := strconv.ParseUint(arg, 10, 64)
-	if err != nil {
-		return arg, 0
-	}
-	return "", uint(id64)
 }
 
 func addUserFlags(flags *pflag.FlagSet) {

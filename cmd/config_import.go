@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
-	"path/filepath"
 	"reflect"
 
 	"github.com/spf13/cobra"
@@ -54,32 +52,6 @@ The path must be for a json or yaml file.`,
 
 		err = d.store.Settings.SaveServer(file.Server)
 		checkErr(err)
-
-		var rawAuther interface{}
-		if filepath.Ext(args[0]) != ".json" { //nolint:goconst
-			rawAuther = cleanUpInterfaceMap(file.Auther.(map[interface{}]interface{}))
-		} else {
-			rawAuther = file.Auther
-		}
-
-		var auther auth.Auther
-		switch file.Settings.AuthMethod {
-		case auth.MethodJSONAuth:
-			auther = getAuther(auth.JSONAuth{}, rawAuther).(*auth.JSONAuth)
-		case auth.MethodNoAuth:
-			auther = getAuther(auth.NoAuth{}, rawAuther).(*auth.NoAuth)
-		case auth.MethodProxyAuth:
-			auther = getAuther(auth.ProxyAuth{}, rawAuther).(*auth.ProxyAuth)
-		case auth.MethodHookAuth:
-			auther = getAuther(&auth.HookAuth{}, rawAuther).(*auth.HookAuth)
-		default:
-			checkErr(errors.New("invalid auth method"))
-		}
-
-		err = d.store.Auth.Save(auther)
-		checkErr(err)
-
-		printSettings(file.Server, file.Settings, auther)
 	}, pythonConfig{allowNoDB: true}),
 }
 

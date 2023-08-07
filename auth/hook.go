@@ -3,13 +3,11 @@ package auth
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"strings"
 
-	"github.com/filebrowser/filebrowser/v2/errors"
 	"github.com/filebrowser/filebrowser/v2/files"
 	"github.com/filebrowser/filebrowser/v2/settings"
 	"github.com/filebrowser/filebrowser/v2/users"
@@ -25,7 +23,6 @@ type hookCred struct {
 
 // HookAuth is a hook implementation of an Auther.
 type HookAuth struct {
-	Users    users.Store        `json:"-"`
 	Settings *settings.Settings `json:"-"`
 	Server   *settings.Server   `json:"-"`
 	Cred     hookCred           `json:"-"`
@@ -34,7 +31,7 @@ type HookAuth struct {
 }
 
 // Auth authenticates the user via a json in content body.
-func (a *HookAuth) Auth(r *http.Request, usr users.Store, stg *settings.Settings, srv *settings.Server) (*users.User, error) {
+func (a *HookAuth) Auth(r *http.Request, stg *settings.Settings, srv *settings.Server) (*users.User, error) {
 	var cred hookCred
 
 	if r.Body == nil {
@@ -46,7 +43,6 @@ func (a *HookAuth) Auth(r *http.Request, usr users.Store, stg *settings.Settings
 		return nil, os.ErrPermission
 	}
 
-	a.Users = usr
 	a.Settings = stg
 	a.Server = srv
 	a.Cred = cred
@@ -57,20 +53,8 @@ func (a *HookAuth) Auth(r *http.Request, usr users.Store, stg *settings.Settings
 	}
 
 	switch action {
-	case "auth":
-		u, err := a.SaveUser()
-		if err != nil {
-			return nil, err
-		}
-		return u, nil
 	case "block":
 		return nil, os.ErrPermission
-	case "pass":
-		u, err := a.Users.Get(a.Server.Root, a.Cred.Username)
-		if err != nil || !users.CheckPwd(a.Cred.Password, u.Password) {
-			return nil, os.ErrPermission
-		}
-		return u, nil
 	default:
 		return nil, fmt.Errorf("invalid hook action: %s", action)
 	}
@@ -139,67 +123,6 @@ func (a *HookAuth) GetValues(s string) {
 	}
 
 	a.Fields.Values = m
-}
-
-// SaveUser updates the existing user or creates a new one when not found
-func (a *HookAuth) SaveUser() (*users.User, error) {
-	u, err := a.Users.Get(a.Server.Root, a.Cred.Username)
-	if err != nil && err != errors.ErrNotExist {
-		return nil, err
-	}
-
-	if u == nil {
-		pass, err := users.HashPwd(a.Cred.Password)
-		if err != nil {
-			return nil, err
-		}
-
-		// create user with the provided credentials
-		d := &users.User{
-			Username:     a.Cred.Username,
-			Password:     pass,
-			Scope:        a.Settings.Defaults.Scope,
-			Locale:       a.Settings.Defaults.Locale,
-			ViewMode:     a.Settings.Defaults.ViewMode,
-			SingleClick:  a.Settings.Defaults.SingleClick,
-			Sorting:      a.Settings.Defaults.Sorting,
-			Perm:         a.Settings.Defaults.Perm,
-			Commands:     a.Settings.Defaults.Commands,
-			HideDotfiles: a.Settings.Defaults.HideDotfiles,
-		}
-		u = a.GetUser(d)
-
-		userHome, err := a.Settings.MakeUserDir(u.Username, u.Scope, a.Server.Root)
-		if err != nil {
-			return nil, fmt.Errorf("user: failed to mkdir user home dir: [%s]", userHome)
-		}
-		u.Scope = userHome
-		log.Printf("user: %s, home dir: [%s].", u.Username, userHome)
-
-		err = a.Users.Save(u)
-		if err != nil {
-			return nil, err
-		}
-	} else if p := !users.CheckPwd(a.Cred.Password, u.Password); len(a.Fields.Values) > 1 || p {
-		u = a.GetUser(u)
-
-		// update the password when it doesn't match the current
-		if p {
-			pass, err := users.HashPwd(a.Cred.Password)
-			if err != nil {
-				return nil, err
-			}
-			u.Password = pass
-		}
-
-		// update user with provided fields
-		err := a.Users.Update(u)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return u, nil
 }
 
 // GetUser returns a User filled with hook values or provided defaults

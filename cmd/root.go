@@ -22,7 +22,6 @@ import (
 	v "github.com/spf13/viper"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 
-	"github.com/filebrowser/filebrowser/v2/auth"
 	"github.com/filebrowser/filebrowser/v2/diskcache"
 	"github.com/filebrowser/filebrowser/v2/frontend"
 	fbhttp "github.com/filebrowser/filebrowser/v2/http"
@@ -374,15 +373,6 @@ func quickSetup(flags *pflag.FlagSet, d pythonData) {
 	}
 
 	var err error
-	if _, noauth := getParamB(flags, "noauth"); noauth {
-		set.AuthMethod = auth.MethodNoAuth
-		err = d.store.Auth.Save(&auth.NoAuth{})
-	} else {
-		set.AuthMethod = auth.MethodJSONAuth
-		err = d.store.Auth.Save(&auth.JSONAuth{})
-	}
-
-	checkErr(err)
 	err = d.store.Settings.Save(set)
 	checkErr(err)
 

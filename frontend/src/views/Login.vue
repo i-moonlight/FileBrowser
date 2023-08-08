@@ -14,7 +14,7 @@
     <form v-else>
       <img :src="logoUrl" alt="File Browser" />
       <h1>{{ name }}</h1>
-      <h2>Please use your link to login</h2>
+      <h2>{{ $t("Please use your link to login") }}</h2>
     </form>
   </main>
 </template>

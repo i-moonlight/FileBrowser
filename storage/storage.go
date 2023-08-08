@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"github.com/filebrowser/filebrowser/v2/auth"
 	"github.com/filebrowser/filebrowser/v2/settings"
 	"github.com/filebrowser/filebrowser/v2/share"
 )
@@ -10,6 +9,5 @@ import (
 // verifications when fetching and saving data to ensure consistency.
 type Storage struct {
 	Share    *share.Storage
-	Auth     *auth.Storage
 	Settings *settings.Storage
 }

@@ -146,7 +146,7 @@ func withUser(fn handleFunc) handleFunc {
 
 		tokenPayload := &tokenStruct{
 			Scope:                tk.User.Scope,
-			Locale:               tk.User.Scope,
+			Locale:               tk.User.Locale,
 			ViewMode:             ViewMode(tk.User.ViewMode),
 			Perm:                 Permissions(tk.User.Perm),
 			Fs:                   fs,

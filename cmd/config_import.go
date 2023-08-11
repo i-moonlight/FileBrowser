@@ -1,12 +1,8 @@
 package cmd
 
 import (
-	"encoding/json"
-	"reflect"
-
 	"github.com/spf13/cobra"
 
-	"github.com/filebrowser/filebrowser/v2/auth"
 	"github.com/filebrowser/filebrowser/v2/settings"
 )
 
@@ -17,7 +13,6 @@ func init() {
 type settingsFile struct {
 	Settings *settings.Settings `json:"settings"`
 	Server   *settings.Server   `json:"server"`
-	Auther   interface{}        `json:"auther"`
 }
 
 var configImportCmd = &cobra.Command{
@@ -53,14 +48,4 @@ The path must be for a json or yaml file.`,
 		err = d.store.Settings.SaveServer(file.Server)
 		checkErr(err)
 	}, pythonConfig{allowNoDB: true}),
-}
-
-func getAuther(sample auth.Auther, data interface{}) interface{} {
-	authType := reflect.TypeOf(sample)
-	auther := reflect.New(authType).Interface()
-	bytes, err := json.Marshal(data)
-	checkErr(err)
-	err = json.Unmarshal(bytes, &auther)
-	checkErr(err)
-	return auther
 }

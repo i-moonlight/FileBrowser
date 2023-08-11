@@ -42,8 +42,6 @@ you want to change. Other options will remain unchanged.`,
 				ser.Port = mustGetString(flags, flag.Name)
 			case "log":
 				ser.Log = mustGetString(flags, flag.Name)
-			case "signup":
-				set.Signup = mustGetBool(flags, flag.Name)
 			case "shell":
 				set.Shell = convertCmdStrToCmdArray(mustGetString(flags, flag.Name))
 			case "branding.name":
@@ -58,8 +56,6 @@ you want to change. Other options will remain unchanged.`,
 				set.Branding.Files = mustGetString(flags, flag.Name)
 			}
 		})
-
-		getUserDefaults(flags, &set.Defaults, false)
 		err = d.store.Settings.Save(set)
 		checkErr(err)
 		err = d.store.Settings.SaveServer(ser)

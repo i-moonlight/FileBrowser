@@ -347,7 +347,6 @@ func quickSetup(flags *pflag.FlagSet, d pythonData) {
 
 	set := &settings.Settings{
 		Key:              byteSecret,
-		Signup:           false,
 		CreateUserDir:    false,
 		UserHomeBasePath: settings.DefaultUsersHomeBasePath,
 		Defaults: settings.UserDefaults{
@@ -365,11 +364,10 @@ func quickSetup(flags *pflag.FlagSet, d pythonData) {
 				Download: true,
 			},
 		},
-		AuthMethod: "",
-		Branding:   settings.Branding{},
-		Commands:   nil,
-		Shell:      nil,
-		Rules:      nil,
+		Branding: settings.Branding{},
+		Commands: nil,
+		Shell:    nil,
+		Rules:    nil,
 	}
 
 	var err error

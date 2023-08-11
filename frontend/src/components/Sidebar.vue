@@ -56,17 +56,6 @@
         <i class="material-icons">exit_to_app</i>
         <span>{{ $t("sidebar.login") }}</span>
       </router-link>
-
-      <router-link
-        v-if="signup"
-        class="action"
-        to="/login"
-        :aria-label="$t('sidebar.signup')"
-        :title="$t('sidebar.signup')"
-      >
-        <i class="material-icons">person_add</i>
-        <span>{{ $t("sidebar.signup") }}</span>
-      </router-link>
     </template>
   </nav>
 </template>
@@ -76,7 +65,6 @@ import { mapState, mapGetters } from "vuex";
 import * as auth from "@/utils/auth";
 import {
   version,
-  signup,
   disableExternal,
   disableUsedPercentage,
 } from "@/utils/constants";
@@ -89,7 +77,6 @@ export default {
     active() {
       return this.$store.state.show === "sidebar";
     },
-    signup: () => signup,
     version: () => version,
     disableExternal: () => disableExternal,
     disableUsedPercentage: () => disableUsedPercentage,

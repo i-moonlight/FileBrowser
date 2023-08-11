@@ -25,11 +25,9 @@ override the options.`,
 	Run: python(func(cmd *cobra.Command, args []string, d pythonData) {
 		defaults := settings.UserDefaults{}
 		flags := cmd.Flags()
-		getUserDefaults(flags, &defaults, true)
 
 		s := &settings.Settings{
 			Key:      generateKey(),
-			Signup:   mustGetBool(flags, "signup"),
 			Shell:    convertCmdStrToCmdArray(mustGetString(flags, "shell")),
 			Defaults: defaults,
 			Branding: settings.Branding{

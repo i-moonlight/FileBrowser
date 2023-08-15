@@ -11,6 +11,7 @@ import (
 	"github.com/filebrowser/filebrowser/v2/runner"
 	"github.com/filebrowser/filebrowser/v2/settings"
 	"github.com/filebrowser/filebrowser/v2/storage"
+	"github.com/filebrowser/filebrowser/v2/users"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -23,7 +24,7 @@ type data struct {
 	settings *settings.Settings
 	server   *settings.Server
 	store    *storage.Storage
-	token    *tokenStruct
+	token    *users.TokenStruct
 	redis    *redis.Client
 }
 

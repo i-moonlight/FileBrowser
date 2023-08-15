@@ -18,14 +18,11 @@ type Runner struct {
 }
 
 // RunHook runs the hooks for the before and after event.
-func (r *Runner) RunHook(fn func() error, evt, path, dst string, user *users.User) error {
-	path = user.FullPath(path)
-	dst = user.FullPath(dst)
-
+func (r *Runner) RunHook(fn func() error, evt, path, dst string, token *users.TokenStruct) error {
 	if r.Enabled {
 		if val, ok := r.Commands["before_"+evt]; ok {
 			for _, command := range val {
-				err := r.exec(command, "before_"+evt, path, dst, user)
+				err := r.exec(command, "before_"+evt, path, dst, token)
 				if err != nil {
 					return err
 				}
@@ -41,7 +38,7 @@ func (r *Runner) RunHook(fn func() error, evt, path, dst string, user *users.Use
 	if r.Enabled {
 		if val, ok := r.Commands["after_"+evt]; ok {
 			for _, command := range val {
-				err := r.exec(command, "after_"+evt, path, dst, user)
+				err := r.exec(command, "after_"+evt, path, dst, token)
 				if err != nil {
 					return err
 				}
@@ -52,7 +49,7 @@ func (r *Runner) RunHook(fn func() error, evt, path, dst string, user *users.Use
 	return nil
 }
 
-func (r *Runner) exec(raw, evt, path, dst string, user *users.User) error {
+func (r *Runner) exec(raw, evt, path, dst string, token *users.TokenStruct) error {
 	blocking := true
 
 	if strings.HasSuffix(raw, "&") {
@@ -70,11 +67,11 @@ func (r *Runner) exec(raw, evt, path, dst string, user *users.User) error {
 		case "FILE":
 			return path
 		case "SCOPE":
-			return user.Scope
+			return token.Scope
 		case "TRIGGER":
 			return evt
 		case "USERNAME":
-			return user.Username
+			return token.Scope
 		case "DESTINATION":
 			return dst
 		default:
@@ -91,9 +88,9 @@ func (r *Runner) exec(raw, evt, path, dst string, user *users.User) error {
 
 	cmd := exec.Command(command[0], command[1:]...) //nolint:gosec
 	cmd.Env = append(os.Environ(), fmt.Sprintf("FILE=%s", path))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("SCOPE=%s", user.Scope)) //nolint:gocritic
+	cmd.Env = append(cmd.Env, fmt.Sprintf("SCOPE=%s", token.Scope)) //nolint:gocritic
 	cmd.Env = append(cmd.Env, fmt.Sprintf("TRIGGER=%s", evt))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("USERNAME=%s", user.Username))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("USERNAME=%s", token.Scope))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("DESTINATION=%s", dst))
 
 	cmd.Stdin = os.Stdin

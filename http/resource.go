@@ -88,13 +88,13 @@ func resourceDeleteHandler(fileCache FileCache) handleFunc {
 			return errToStatus(err), err
 		}
 
-		// err = d.RunHook(func() error {
-		// 	return d.token.Fs.RemoveAll(r.URL.Path)
-		// }, "delete", r.URL.Path, "", d.user)
+		err = d.RunHook(func() error {
+			return d.token.Fs.RemoveAll(r.URL.Path)
+		}, "delete", r.URL.Path, "", d.token)
 
-		// if err != nil {
-		// 	return errToStatus(err), err
-		// }
+		if err != nil {
+			return errToStatus(err), err
+		}
 
 		return http.StatusOK, nil
 	})
@@ -136,20 +136,20 @@ func resourcePostHandler(fileCache FileCache) handleFunc {
 			}
 		}
 
-		// err = d.RunHook(func() error {
-		// 	info, writeErr := writeFile(d.token.Fs, r.URL.Path, r.Body)
-		// 	if writeErr != nil {
-		// 		return writeErr
-		// 	}
+		err = d.RunHook(func() error {
+			info, writeErr := writeFile(d.token.Fs, r.URL.Path, r.Body)
+			if writeErr != nil {
+				return writeErr
+			}
 
-		// 	etag := fmt.Sprintf(`"%x%x"`, info.ModTime().UnixNano(), info.Size())
-		// 	w.Header().Set("ETag", etag)
-		// 	return nil
-		// }, "upload", r.URL.Path, "", d.user)
+			etag := fmt.Sprintf(`"%x%x"`, info.ModTime().UnixNano(), info.Size())
+			w.Header().Set("ETag", etag)
+			return nil
+		}, "upload", r.URL.Path, "", d.token)
 
-		// if err != nil {
-		// 	_ = d.token.Fs.RemoveAll(r.URL.Path)
-		// }
+		if err != nil {
+			_ = d.token.Fs.RemoveAll(r.URL.Path)
+		}
 
 		return errToStatus(err), err
 	})
@@ -173,16 +173,16 @@ var resourcePutHandler = withUser(func(w http.ResponseWriter, r *http.Request, d
 		return http.StatusNotFound, nil
 	}
 
-	// err = d.RunHook(func() error {
-	// 	info, writeErr := writeFile(d.token.Fs, r.URL.Path, r.Body)
-	// 	if writeErr != nil {
-	// 		return writeErr
-	// 	}
+	err = d.RunHook(func() error {
+		info, writeErr := writeFile(d.token.Fs, r.URL.Path, r.Body)
+		if writeErr != nil {
+			return writeErr
+		}
 
-	// 	etag := fmt.Sprintf(`"%x%x"`, info.ModTime().UnixNano(), info.Size())
-	// 	w.Header().Set("ETag", etag)
-	// 	return nil
-	// }, "save", r.URL.Path, "", d.user)
+		etag := fmt.Sprintf(`"%x%x"`, info.ModTime().UnixNano(), info.Size())
+		w.Header().Set("ETag", etag)
+		return nil
+	}, "save", r.URL.Path, "", d.token)
 
 	return errToStatus(err), err
 })
@@ -191,7 +191,7 @@ func resourcePatchHandler(fileCache FileCache) handleFunc {
 	return withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
 		src := r.URL.Path
 		dst := r.URL.Query().Get("destination")
-		// action := r.URL.Query().Get("action")
+		action := r.URL.Query().Get("action")
 		dst, err := url.QueryUnescape(dst)
 		if !d.Check(src) || !d.Check(dst) {
 			return http.StatusForbidden, nil
@@ -215,18 +215,19 @@ func resourcePatchHandler(fileCache FileCache) handleFunc {
 				return http.StatusConflict, nil
 			}
 		}
-		// if rename {
-		// 	dst = addVersionSuffix(dst, d.token.Fs)
-		// }
+
+		if rename {
+			dst = addVersionSuffix(dst, d.token.Fs)
+		}
 
 		// Permission for overwriting the file
 		if override && !d.token.Perm.Modify {
 			return http.StatusForbidden, nil
 		}
 
-		// err = d.RunHook(func() error {
-		// 	return patchAction(r.Context(), action, src, dst, d, fileCache)
-		// }, action, src, dst, d.user)
+		err = d.RunHook(func() error {
+			return patchAction(r.Context(), action, src, dst, d, fileCache)
+		}, action, src, dst, d.token)
 
 		return errToStatus(err), err
 	})

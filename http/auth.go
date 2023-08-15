@@ -18,66 +18,14 @@ import (
 
 var ctx = context.Background()
 
-type EncryptedCredentials struct {
-	Iv            string `json:"iv"`
-	EncryptedData string `json:"encryptedData"`
-}
-
-type DecryptedCredentials struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Type     string `json:"type"`
-	OU       string `json:"OU"`
-	Hostname string `json:"hostname"`
-}
-
-type userInfo struct {
-	Locale               string               `json:"locale"`
-	ViewMode             users.ViewMode       `json:"viewMode"`
-	SingleClick          bool                 `json:"singleClick"`
-	Perm                 users.Permissions    `json:"perm"`
-	Commands             []string             `json:"commands"`
-	LockPassword         bool                 `json:"lockPassword"`
-	HideDotfiles         bool                 `json:"hideDotfiles"`
-	DateFormat           bool                 `json:"dateFormat"`
-	Scope                string               `json:"scope"`
-	EncryptedCredentials EncryptedCredentials `json:"credentials"`
-}
-
 type authToken struct {
-	User userInfo `json:"user"`
+	User users.UserInfo `json:"user"`
 	jwt.RegisteredClaims
 }
 
 type RedisTokenInfo struct {
 	Payload  authToken `json:"authToken"`
 	IsActive bool      `json:"isActive"`
-}
-
-const (
-	ListViewMode   ViewMode = "list"
-	MosaicViewMode ViewMode = "mosaic"
-)
-
-type Permissions struct {
-	Admin    bool `json:"admin"`
-	Execute  bool `json:"execute"`
-	Create   bool `json:"create"`
-	Rename   bool `json:"rename"`
-	Modify   bool `json:"modify"`
-	Delete   bool `json:"delete"`
-	Share    bool `json:"share"`
-	Download bool `json:"download"`
-}
-
-type tokenStruct struct {
-	Scope                string               `json:"scope"`
-	Locale               string               `json:"locale"`
-	ViewMode             ViewMode             `json:"viewMode"`
-	Perm                 Permissions          `json:"perm"`
-	Fs                   afero.Fs             `json:"-" yaml:"-"`
-	HideDotfiles         bool                 `json:"hideDotfiles"`
-	EncryptedCredentials EncryptedCredentials `json:"credentiald"`
 }
 
 type extractor []string
@@ -144,11 +92,11 @@ func withUser(fn handleFunc) handleFunc {
 		scope := filepath.Join(d.server.Root, filepath.Join("/", tk.User.Scope)) //nolint:gocritic
 		fs := afero.NewBasePathFs(afero.NewOsFs(), scope)
 
-		tokenPayload := &tokenStruct{
+		tokenPayload := &users.TokenStruct{
 			Scope:                tk.User.Scope,
 			Locale:               tk.User.Locale,
-			ViewMode:             ViewMode(tk.User.ViewMode),
-			Perm:                 Permissions(tk.User.Perm),
+			ViewMode:             users.ViewMode(tk.User.ViewMode),
+			Perm:                 users.Permissions(tk.User.Perm),
 			Fs:                   fs,
 			HideDotfiles:         tk.User.HideDotfiles,
 			EncryptedCredentials: tk.User.EncryptedCredentials,
@@ -172,7 +120,7 @@ var mountHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data
 
 	jsonString := string(decryptedCredentials)
 
-	var credentials DecryptedCredentials
+	var credentials users.DecryptedCredentials
 	json.Unmarshal([]byte(jsonString), &credentials)
 
 	fmt.Println("Decrypted Credentials:", credentials)

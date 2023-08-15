@@ -38,6 +38,42 @@ type User struct {
 	DateFormat   bool          `json:"dateFormat"`
 }
 
+type EncryptedCredentials struct {
+	Iv            string `json:"iv"`
+	EncryptedData string `json:"encryptedData"`
+}
+
+type DecryptedCredentials struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Type     string `json:"type"`
+	OU       string `json:"OU"`
+	Hostname string `json:"hostname"`
+}
+
+type UserInfo struct {
+	Locale               string               `json:"locale"`
+	ViewMode             ViewMode             `json:"viewMode"`
+	SingleClick          bool                 `json:"singleClick"`
+	Perm                 Permissions          `json:"perm"`
+	Commands             []string             `json:"commands"`
+	LockPassword         bool                 `json:"lockPassword"`
+	HideDotfiles         bool                 `json:"hideDotfiles"`
+	DateFormat           bool                 `json:"dateFormat"`
+	Scope                string               `json:"scope"`
+	EncryptedCredentials EncryptedCredentials `json:"credentials"`
+}
+
+type TokenStruct struct {
+	Scope                string               `json:"scope"`
+	Locale               string               `json:"locale"`
+	ViewMode             ViewMode             `json:"viewMode"`
+	Perm                 Permissions          `json:"perm"`
+	Fs                   afero.Fs             `json:"-" yaml:"-"`
+	HideDotfiles         bool                 `json:"hideDotfiles"`
+	EncryptedCredentials EncryptedCredentials `json:"credentiald"`
+}
+
 // GetRules implements rules.Provider.
 func (u *User) GetRules() []rules.Rule {
 	return u.Rules

@@ -35,13 +35,19 @@ export default {
   },
   async created() {
     const token = this.$route.query.token
+    let redirect = this.$route.query.redirect;
+
+    if (redirect === "" || redirect === undefined || redirect === null) {
+      redirect = "/files/";
+    }
+
     if (token) {
       this.setLoading(true)
       auth.logout(false)
       try {
         await auth.checkToken(token)
         await auth.mount(token)
-        await this.$router.push("/files")
+        await this.$router.push(redirect)
         this.$toast.success("Welcome")
       } catch (error) {
         this.$toast.error(this.$t("Unauthorized"))

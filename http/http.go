@@ -76,7 +76,7 @@ func NewHandler(
 	// api.Handle("/settings", monkey(settingsGetHandler, "")).Methods("GET")
 	// api.Handle("/settings", monkey(settingsPutHandler, "")).Methods("PUT")
 
-	// api.PathPrefix("/raw").Handler(monkey(rawHandler, "/api/raw")).Methods("GET")
+	api.PathPrefix("/raw").Handler(monkey(rawHandler, "/api/raw")).Methods("GET")
 	api.PathPrefix("/preview/{size}/{path:.*}").
 		Handler(monkey(previewHandler(imgSvc, fileCache, server.EnableThumbnails, server.ResizePreview), "/api/preview")).Methods("GET")
 	// api.PathPrefix("/command").Handler(monkey(commandsHandler, "/api/command")).Methods("GET")

@@ -143,7 +143,7 @@ export function copy(items, overwrite = false, rename = false) {
 }
 
 export async function checksum(url, algo) {
-  const data = await resourceAction(`${url}?checksum=${algo}`, "GET");
+  const data = await resourceAction(`${url}?checksum=${algo}&asc=true`, "GET");
   return (await data.json()).checksums[algo];
 }
 

@@ -56,6 +56,11 @@ export default {
       event.preventDefault();
       if (this.new === "") return;
 
+      if (this.name.length > 255) {
+        this.$toast.error("Directory name is too long")
+        return
+      };
+
       // Build the path of the new directory.
       let uri = this.isFiles ? this.$route.path + "/" : "/";
 

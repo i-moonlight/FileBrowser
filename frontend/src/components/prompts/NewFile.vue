@@ -56,6 +56,11 @@ export default {
       event.preventDefault();
       if (this.new === "") return;
 
+      if (!this.name.length) {
+        this.$toast.error("Please provide the file name")
+        return
+      };
+
       if (this.name.length > 255) {
         this.$toast.error("File name is too long")
         return

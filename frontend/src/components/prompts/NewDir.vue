@@ -56,6 +56,11 @@ export default {
       event.preventDefault();
       if (this.new === "") return;
 
+      if (!this.name.length) {
+        this.$toast.error("Please provide the directory name")
+        return
+      };
+
       if (this.name.length > 255) {
         this.$toast.error("Directory name is too long")
         return

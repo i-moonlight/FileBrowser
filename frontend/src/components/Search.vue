@@ -148,8 +148,10 @@ export default {
     });
   },
   methods: {
-    ...mapMutations(["showHover", "closeHovers", "setReload"]),
+    ...mapMutations(["showHover", "closeHovers", "setReload", "resetSelected"]),
     open() {
+      this.resetSelected();
+      this.$store.commit("multiple", false);
       this.showHover("search");
     },
     close(event) {

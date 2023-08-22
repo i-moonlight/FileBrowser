@@ -15,11 +15,11 @@
         <button
           @click="$store.commit('showHover', 'newDir')"
           class="action"
-          :aria-label="$t('sidebar.newFolder')"
-          :title="$t('sidebar.newFolder')"
+          :aria-label="$t('prompts.newDir')"
+          :title="$t('prompts.newDir')"
         >
           <i class="material-icons">create_new_folder</i>
-          <span>{{ $t("sidebar.newFolder") }}</span>
+          <span>{{ $t("prompts.newDir") }}</span>
         </button>
 
         <button

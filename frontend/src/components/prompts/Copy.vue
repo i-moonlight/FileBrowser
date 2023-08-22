@@ -79,7 +79,7 @@ export default {
           })
           .catch((e) => {
             buttons.done("copy");
-            this.$showError(e);
+            this.$toast.error(e.message)
           });
       };
 

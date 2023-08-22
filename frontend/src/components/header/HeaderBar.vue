@@ -1,6 +1,6 @@
 <template>
   <header>
-    <img v-if="showLogo !== undefined" :src="logoURL" />
+    <img v-if="showLogo !== undefined" :src="logoURL" @click="toRoot"/>
     <action
       v-if="showMenu !== undefined"
       class="menu-button"
@@ -50,6 +50,10 @@ export default {
   methods: {
     openSidebar() {
       this.$store.commit("showHover", "sidebar");
+    },
+    toRoot() {
+      this.$router.push({ path: "/files/" }, () => {});
+      this.$store.commit("closeHovers");
     },
   },
 };

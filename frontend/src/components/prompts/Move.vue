@@ -71,7 +71,7 @@ export default {
           })
           .catch((e) => {
             buttons.done("move");
-            this.$showError(e);
+            this.$toast.error(e.message)
           });
       };
 

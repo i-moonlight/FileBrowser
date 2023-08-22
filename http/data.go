@@ -68,6 +68,14 @@ func handle(fn handleFunc, prefix string, store *storage.Storage, server *settin
 		}
 
 		if status != 0 {
+			errorMessage := ""
+			if err != nil {
+				errorMessage = err.Error()
+				if errorMessage == "source is parent" {
+					http.Error(w, "Please select a different location", status)
+					return
+				}
+			}
 			txt := http.StatusText(status)
 			http.Error(w, strconv.Itoa(status)+" "+txt, status)
 			return

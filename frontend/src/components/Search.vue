@@ -164,8 +164,8 @@ export default {
         this.close(event);
         return;
       }
-
-      this.results.length = 0;
+      
+      // this.results.length = 0;
     },
     init(string) {
       this.value = `${string} `;

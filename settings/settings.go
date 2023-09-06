@@ -46,6 +46,7 @@ type Server struct {
 	RedisPassword          string `json:"redisPassword"`
 	TokenSecret            string `json:"tokenSecret"`
 	TokenCredentialsSecret string `json:"tokenCredentialsSecret"`
+	MountScriptPath        string `json:"mountScriptPath"`
 }
 
 // Clean cleans any variables that might need cleaning.

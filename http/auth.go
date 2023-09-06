@@ -125,7 +125,9 @@ var mountHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data
 
 	fmt.Println("Decrypted Credentials:", credentials)
 
-	e := executeScript("./script.sh", credentials.Username, credentials.Password, credentials.Type, credentials.OU, credentials.Hostname)
+	fmt.Println("Script Path:", d.server.MountScriptPath)
+
+	e := executeScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.Type, credentials.OU, credentials.Hostname)
 	if e != nil {
 		fmt.Println("Error executing script:", e)
 		return http.StatusBadRequest, e

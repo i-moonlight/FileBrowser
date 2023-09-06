@@ -14,6 +14,6 @@ fi
 
 # Simulate a time-consuming task
 echo "Simulating a time-consuming task..."
-sleep 3
+sleep 1
 
 echo "Test script completed."

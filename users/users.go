@@ -2,7 +2,6 @@ package users
 
 import (
 	"path/filepath"
-	"regexp"
 
 	"github.com/spf13/afero"
 
@@ -26,11 +25,9 @@ type User struct {
 	Password     string        `json:"password"`
 	Scope        string        `json:"scope"`
 	Locale       string        `json:"locale"`
-	LockPassword bool          `json:"lockPassword"`
 	ViewMode     ViewMode      `json:"viewMode"`
 	SingleClick  bool          `json:"singleClick"`
 	Perm         Permissions   `json:"perm"`
-	Commands     []string      `json:"commands"`
 	Sorting      files.Sorting `json:"sorting"`
 	Fs           afero.Fs      `json:"-" yaml:"-"`
 	Rules        []rules.Rule  `json:"rules"`
@@ -56,8 +53,6 @@ type UserInfo struct {
 	ViewMode             ViewMode             `json:"viewMode"`
 	SingleClick          bool                 `json:"singleClick"`
 	Perm                 Permissions          `json:"perm"`
-	Commands             []string             `json:"commands"`
-	LockPassword         bool                 `json:"lockPassword"`
 	HideDotfiles         bool                 `json:"hideDotfiles"`
 	DateFormat           bool                 `json:"dateFormat"`
 	Scope                string               `json:"scope"`
@@ -84,7 +79,6 @@ var checkableFields = []string{
 	"Password",
 	"Scope",
 	"ViewMode",
-	"Commands",
 	"Sorting",
 	"Rules",
 }
@@ -112,10 +106,6 @@ func (u *User) Clean(baseScope string, fields ...string) error {
 			if u.ViewMode == "" {
 				u.ViewMode = ListViewMode
 			}
-		case "Commands":
-			if u.Commands == nil {
-				u.Commands = []string{}
-			}
 		case "Sorting":
 			if u.Sorting.By == "" {
 				u.Sorting.By = "name"
@@ -139,19 +129,4 @@ func (u *User) Clean(baseScope string, fields ...string) error {
 // FullPath gets the full path for a user's relative path.
 func (u *User) FullPath(path string) string {
 	return afero.FullBaseFsPath(u.Fs.(*afero.BasePathFs), path)
-}
-
-// CanExecute checks if an user can execute a specific command.
-func (u *User) CanExecute(command string) bool {
-	if !u.Perm.Execute {
-		return false
-	}
-
-	for _, cmd := range u.Commands {
-		if regexp.MustCompile(cmd).MatchString(command) {
-			return true
-		}
-	}
-
-	return false
 }

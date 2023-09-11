@@ -43,7 +43,7 @@ export default {
 
     if (token) {
       this.setLoading(true)
-      auth.logout(false)
+      auth.clearStoreAuth()
 
       const sessionId = crypto.randomUUID()
       sessionStorage.setItem('token', token)

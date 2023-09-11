@@ -55,14 +55,19 @@ export async function logout(isRedirect = true) {
   } catch (error) {
     throw new Error(error);
   } finally {
+    clearStoreAuth()
+
+    if (isRedirect) {
+      router.push({ path: "/login" });
+    }
+  }
+}
+
+export function clearStoreAuth() {
     document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/";
   
     store.commit("setJWT", "");
     store.commit("setSessionId", "");
     store.commit("setUser", null);
     localStorage.setItem("jwt", null);
-    if (isRedirect) {
-      router.push({ path: "/login" });
-    }
-  }
 }

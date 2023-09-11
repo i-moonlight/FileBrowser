@@ -24,8 +24,10 @@ type authToken struct {
 }
 
 type RedisTokenInfo struct {
-	Payload  authToken `json:"authToken"`
-	IsActive bool      `json:"isActive"`
+	Locale    string `json:"locale"`
+	Scope     string `json:"scope"`
+	IsActive  bool   `json:"isActive"`
+	SessionId string `json:"sessionId"`
 }
 
 type extractor []string
@@ -45,14 +47,28 @@ func (e extractor) ExtractToken(r *http.Request) (string, error) {
 		return auth, nil
 	}
 
-	if r.Method == http.MethodGet {
-		cookie, _ := r.Cookie("auth")
-		if cookie != nil && strings.Count(cookie.Value, ".") == 2 {
-			return cookie.Value, nil
-		}
+	return "", request.ErrNoTokenInRequest
+}
+
+func extractSessionId(r *http.Request) string {
+	sessionId := r.Header.Get("X-Session-Id")
+
+	if sessionId == "" {
+		sessionId = r.URL.Query().Get("sid")
 	}
 
-	return "", request.ErrNoTokenInRequest
+	return sessionId
+}
+
+func getTokenInfoFromRedis(d *data, token string) (RedisTokenInfo, error) {
+	val, err := d.redis.Get(ctx, token).Result()
+	if err != nil {
+		return RedisTokenInfo{}, err
+	}
+
+	var rTokenInfo RedisTokenInfo
+	json.Unmarshal([]byte(val), &rTokenInfo)
+	return rTokenInfo, nil
 }
 
 func withUser(fn handleFunc) handleFunc {
@@ -63,6 +79,12 @@ func withUser(fn handleFunc) handleFunc {
 
 		var tk authToken
 		token, err := request.ParseFromRequest(r, &extractor{}, keyFunc, request.WithClaims(&tk))
+		sessionId := extractSessionId(r)
+
+		// Check if sessionId is not empty
+		if sessionId == "" {
+			return http.StatusUnauthorized, nil
+		}
 
 		// Check is token valid
 		if err != nil || !token.Valid {
@@ -76,16 +98,30 @@ func withUser(fn handleFunc) handleFunc {
 			return http.StatusUnauthorized, nil
 		}
 
-		// Check session in Redis
-		val, err := d.redis.Get(ctx, token.Raw).Result()
+		rTokenInfo, err := getTokenInfoFromRedis(d, token.Raw)
 		if err != nil {
 			return http.StatusUnauthorized, nil
 		}
 
-		var rTokenInfo RedisTokenInfo
-		json.Unmarshal([]byte(val), &rTokenInfo)
+		// Set new Session Id into Redis if it is empty
+		if rTokenInfo.SessionId == "" {
+			rTokenInfo.SessionId = sessionId
+			jsonBytes, _ := json.Marshal(rTokenInfo)
 
-		if !rTokenInfo.IsActive {
+			err := d.redis.Set(ctx, token.Raw, jsonBytes, 60*time.Minute).Err()
+			if err != nil {
+				fmt.Println("Error while updating session Id in Redis")
+				fmt.Println(err)
+				return http.StatusUnauthorized, nil
+			}
+
+			rTokenInfo, _ = getTokenInfoFromRedis(d, token.Raw)
+
+			fmt.Println(rTokenInfo)
+		}
+
+		// Compare sessionId from redis and request header
+		if rTokenInfo.SessionId != sessionId {
 			return http.StatusUnauthorized, nil
 		}
 

@@ -3,7 +3,7 @@ import router from "@/router";
 import { Base64 } from "js-base64";
 import { baseURL } from "@/utils/constants";
 
-export function parseToken(token) {
+export function parseToken(token, sessionId) {
   const parts = token.split(".");
 
   if (parts.length !== 3) {
@@ -16,26 +16,27 @@ export function parseToken(token) {
 
   localStorage.setItem("jwt", token);
   store.commit("setJWT", token);
+  store.commit("setSessionId", sessionId);
   store.commit("setUser", data.user);
 }
 
-export async function checkToken(jwt) {
+export async function checkToken(jwt, sessionId) {
   const res = await fetch(`${baseURL}/api/check-token`, {
-    method: "POST",
-    headers: { "X-Auth": jwt },
+    method: 'POST',
+    headers: { 'X-Auth': jwt, 'X-Session-Id': sessionId },
   });
 
   if (res.status === 200) {
-    parseToken(jwt);
+    parseToken(jwt, sessionId);
   } else {
     throw new Error(res);
   }
 }
 
-export async function mount(jwt) {
+export async function mount(jwt, sessionId) {
   const res = await fetch(`${baseURL}/api/mount`, {
     method: "POST",
-    headers: { "X-Auth": jwt },
+    headers: { "X-Auth": jwt, 'X-Session-Id': sessionId },
   });
 
   if (res.status === 200) {

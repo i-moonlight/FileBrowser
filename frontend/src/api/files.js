@@ -74,6 +74,10 @@ export function download(format, ...files) {
     url += `auth=${store.state.jwt}&`;
   }
 
+  if (store.state.sessionId) {
+    url += `sid=${store.state.sessionId}&`;
+  }
+  
   window.open(url);
 }
 
@@ -96,6 +100,7 @@ export async function post(url, content = "", overwrite = false, onupload) {
       true
     );
     request.setRequestHeader("X-Auth", store.state.jwt);
+    request.setRequestHeader("X-Session-Id", store.state.sessionId);
 
     if (typeof onupload === "function") {
       request.upload.onprogress = onupload;

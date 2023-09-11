@@ -67,6 +67,7 @@ type TokenStruct struct {
 	Fs                   afero.Fs             `json:"-" yaml:"-"`
 	HideDotfiles         bool                 `json:"hideDotfiles"`
 	EncryptedCredentials EncryptedCredentials `json:"credentiald"`
+	Raw                  string               `json:"raw"`
 }
 
 // GetRules implements rules.Provider.

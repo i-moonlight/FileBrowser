@@ -52,6 +52,7 @@ func NewHandler(
 
 	api.Handle("/check-token", monkey(checkTokenHandler, "")).Methods("POST")
 	api.Handle("/mount", monkey(mountHandler, "")).Methods("POST")
+	api.Handle("/logout", monkey(logoutHandler, "")).Methods("POST")
 
 	// users := api.PathPrefix("/users").Subrouter()
 	// users.Handle("", monkey(usersGetHandler, "")).Methods("GET")

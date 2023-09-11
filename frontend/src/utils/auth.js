@@ -46,13 +46,23 @@ export async function mount(jwt, sessionId) {
   }
 }
 
-export function logout(isRedirect = true) {
-  document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/";
-
-  store.commit("setJWT", "");
-  store.commit("setUser", null);
-  localStorage.setItem("jwt", null);
-  if (isRedirect) {
-    router.push({ path: "/login" });
+export async function logout(isRedirect = true) {
+  try {
+    await fetch(`${baseURL}/api/logout`, {
+      method: "POST",
+      headers: { "X-Auth": store.state.jwt, 'X-Session-Id': store.state.sessionId },
+    });
+  } catch (error) {
+    throw new Error(error);
+  } finally {
+    document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/";
+  
+    store.commit("setJWT", "");
+    store.commit("setSessionId", "");
+    store.commit("setUser", null);
+    localStorage.setItem("jwt", null);
+    if (isRedirect) {
+      router.push({ path: "/login" });
+    }
   }
 }

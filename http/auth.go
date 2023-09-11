@@ -136,6 +136,7 @@ func withUser(fn handleFunc) handleFunc {
 			Fs:                   fs,
 			HideDotfiles:         tk.User.HideDotfiles,
 			EncryptedCredentials: tk.User.EncryptedCredentials,
+			Raw:                  token.Raw,
 		}
 
 		d.token = tokenPayload
@@ -163,12 +164,39 @@ var mountHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data
 
 	fmt.Println("Script Path:", d.server.MountScriptPath)
 
-	e := executeScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.Type, credentials.OU, credentials.Hostname)
+	e := executeScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.Type, "1", credentials.Hostname)
 	if e != nil {
 		fmt.Println("Error executing script:", e)
 		return http.StatusBadRequest, e
 	}
 
 	fmt.Println("Script executed successfully.")
+	return http.StatusOK, nil
+})
+
+var logoutHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+	// Decrypt credentials data
+	decryptedCredentials, err := decryptData(d.token.EncryptedCredentials.EncryptedData, d.server.TokenCredentialsSecret, d.token.EncryptedCredentials.Iv)
+	if err != nil {
+		return http.StatusUnauthorized, nil
+	}
+
+	jsonString := string(decryptedCredentials)
+
+	var credentials users.DecryptedCredentials
+	json.Unmarshal([]byte(jsonString), &credentials)
+
+	fmt.Println("Decrypted Credentials:", credentials)
+	fmt.Println("Script Path:", d.server.MountScriptPath)
+
+	e := executeScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.Type, "0", credentials.Hostname)
+	if e != nil {
+		fmt.Println("Error executing script:", e)
+		return http.StatusBadRequest, e
+	}
+
+	fmt.Println("Script executed successfully (unmount).")
+
+	d.redis.Del(ctx, d.token.Raw)
 	return http.StatusOK, nil
 })

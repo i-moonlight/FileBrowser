@@ -15,6 +15,7 @@ const state = {
     items: [],
   },
   jwt: "",
+  sessionId: "",
   progress: 0,
   loading: false,
   reload: false,

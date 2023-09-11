@@ -44,9 +44,14 @@ export default {
     if (token) {
       this.setLoading(true)
       auth.logout(false)
+
+      const sessionId = crypto.randomUUID()
+      sessionStorage.setItem('token', token)
+      sessionStorage.setItem('sessionId', sessionId)
+
       try {
-        await auth.checkToken(token)
-        await auth.mount(token)
+        await auth.checkToken(token, sessionId)
+        await auth.mount(token, sessionId)
         await this.$router.push(redirect)
         this.$toast.success("Welcome")
       } catch (error) {

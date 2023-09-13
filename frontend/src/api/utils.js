@@ -62,7 +62,7 @@ export function removePrefix(url) {
   return url;
 }
 
-export function createURL(endpoint, params = {}, auth = true) {
+export function createURL(endpoint, params = {}, auth = true, sid = true) {
   let prefix = baseURL;
   if (!prefix.endsWith("/")) {
     prefix = prefix + "/";
@@ -71,6 +71,7 @@ export function createURL(endpoint, params = {}, auth = true) {
 
   const searchParams = {
     ...(auth && { auth: store.state.jwt }),
+    ...(sid && { sid: store.state.sessionId }),
     ...params,
   };
 

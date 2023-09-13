@@ -108,7 +108,7 @@ func withUser(fn handleFunc) handleFunc {
 			rTokenInfo.SessionId = sessionId
 			jsonBytes, _ := json.Marshal(rTokenInfo)
 
-			err := d.redis.Set(ctx, token.Raw, jsonBytes, 60*time.Minute).Err()
+			err := d.redis.Set(ctx, token.Raw, jsonBytes, -1).Err()
 			if err != nil {
 				fmt.Println("Error while updating session Id in Redis")
 				fmt.Println(err)

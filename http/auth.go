@@ -154,7 +154,6 @@ var mountHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data
 	var credentials users.DecryptedCredentials
 	json.Unmarshal([]byte(jsonString), &credentials)
 
-	fmt.Println("Decrypted Credentials:", credentials)
 	fmt.Println("Script Path:", d.server.MountScriptPath)
 
 	e := utils.ExecuteScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.Type, "1", credentials.Hostname)
@@ -179,7 +178,6 @@ var logoutHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *dat
 	var credentials users.DecryptedCredentials
 	json.Unmarshal([]byte(jsonString), &credentials)
 
-	fmt.Println("Decrypted Credentials:", credentials)
 	fmt.Println("Script Path:", d.server.MountScriptPath)
 
 	e := utils.ExecuteScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.Type, "0", credentials.Hostname)

@@ -70,6 +70,7 @@ func unpadPKCS7(data []byte) ([]byte, error) {
 }
 
 func ExecuteScript(scriptPath string, args ...string) error {
+	fmt.Println(args)
 	cmd := exec.Command(scriptPath, args...)
 
 	// Set the working directory if the script requires it

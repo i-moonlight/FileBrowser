@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"io"
@@ -29,8 +30,10 @@ import (
 	"github.com/filebrowser/filebrowser/v2/settings"
 	"github.com/filebrowser/filebrowser/v2/storage"
 	"github.com/filebrowser/filebrowser/v2/users"
+	"github.com/filebrowser/filebrowser/v2/utils"
 )
 
+var ctx = context.Background()
 var (
 	cfgFile string
 )
@@ -185,6 +188,8 @@ user created with the credentials from options "username" and "password".`,
 			Password: server.RedisPassword, // no password set
 			DB:       0,                    // use default DB
 		})
+
+		go utils.SubscribeRedisEvent(rdb, server.TokenCredentialsSecret, server.TokenSecret, server.MountScriptPath)
 
 		handler, err := fbhttp.NewHandler(imgSvc, fileCache, d.store, server, assetsFs, rdb)
 		checkErr(err)

@@ -14,14 +14,10 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/filebrowser/filebrowser/v2/users"
+	"github.com/filebrowser/filebrowser/v2/utils"
 )
 
 var ctx = context.Background()
-
-type authToken struct {
-	User users.UserInfo `json:"user"`
-	jwt.RegisteredClaims
-}
 
 type RedisTokenInfo struct {
 	Locale    string `json:"locale"`
@@ -77,7 +73,7 @@ func withUser(fn handleFunc) handleFunc {
 			return d.settings.Key, nil
 		}
 
-		var tk authToken
+		var tk users.AuthToken
 		token, err := request.ParseFromRequest(r, &extractor{}, keyFunc, request.WithClaims(&tk))
 		sessionId := extractSessionId(r)
 
@@ -116,8 +112,6 @@ func withUser(fn handleFunc) handleFunc {
 			}
 
 			rTokenInfo, _ = getTokenInfoFromRedis(d, token.Raw)
-
-			fmt.Println(rTokenInfo)
 		}
 
 		// Compare sessionId from redis and request header
@@ -150,7 +144,7 @@ var checkTokenHandler = withUser(func(w http.ResponseWriter, r *http.Request, d 
 
 var mountHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
 	// Decrypt credentials data
-	decryptedCredentials, err := decryptData(d.token.EncryptedCredentials.EncryptedData, d.server.TokenCredentialsSecret, d.token.EncryptedCredentials.Iv)
+	decryptedCredentials, err := utils.DecryptData(d.token.EncryptedCredentials.EncryptedData, d.server.TokenCredentialsSecret, d.token.EncryptedCredentials.Iv)
 	if err != nil {
 		return http.StatusUnauthorized, nil
 	}
@@ -161,10 +155,9 @@ var mountHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data
 	json.Unmarshal([]byte(jsonString), &credentials)
 
 	fmt.Println("Decrypted Credentials:", credentials)
-
 	fmt.Println("Script Path:", d.server.MountScriptPath)
 
-	e := executeScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.Type, "1", credentials.Hostname)
+	e := utils.ExecuteScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.Type, "1", credentials.Hostname)
 	if e != nil {
 		fmt.Println("Error executing script:", e)
 		return http.StatusBadRequest, e
@@ -176,7 +169,7 @@ var mountHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data
 
 var logoutHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
 	// Decrypt credentials data
-	decryptedCredentials, err := decryptData(d.token.EncryptedCredentials.EncryptedData, d.server.TokenCredentialsSecret, d.token.EncryptedCredentials.Iv)
+	decryptedCredentials, err := utils.DecryptData(d.token.EncryptedCredentials.EncryptedData, d.server.TokenCredentialsSecret, d.token.EncryptedCredentials.Iv)
 	if err != nil {
 		return http.StatusUnauthorized, nil
 	}
@@ -189,7 +182,7 @@ var logoutHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *dat
 	fmt.Println("Decrypted Credentials:", credentials)
 	fmt.Println("Script Path:", d.server.MountScriptPath)
 
-	e := executeScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.Type, "0", credentials.Hostname)
+	e := utils.ExecuteScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.Type, "0", credentials.Hostname)
 	if e != nil {
 		fmt.Println("Error executing script:", e)
 		return http.StatusBadRequest, e

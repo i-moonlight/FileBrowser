@@ -3,6 +3,7 @@ package users
 import (
 	"path/filepath"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/spf13/afero"
 
 	"github.com/filebrowser/filebrowser/v2/errors"
@@ -68,6 +69,11 @@ type TokenStruct struct {
 	HideDotfiles         bool                 `json:"hideDotfiles"`
 	EncryptedCredentials EncryptedCredentials `json:"credentiald"`
 	Raw                  string               `json:"raw"`
+}
+
+type AuthToken struct {
+	User UserInfo `json:"user"`
+	jwt.RegisteredClaims
 }
 
 // GetRules implements rules.Provider.

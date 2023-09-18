@@ -14,10 +14,83 @@ filebrowser provides a file managing interface within a specified directory and 
 
 ## Install
 
-To start this app you have to install:
-- [Go lang v1.20.5](https://go.dev/dl/)
+## Prerequisites
+
+Before starting the installation process, make sure you have the following dependencies installed:
+
+- [Go Lang v1.20.5](https://go.dev/dl/)
+
 - [Node.js v16.19.0](https://nodejs.org/uk/blog/release/v16.19.0)
-- [Redis server v7.0](https://redis.io/download/)
+
+- [Redis Server v7.0](https://redis.io/download/)
+
+## Frontend Setup
+  
+
+### 1. Navigate to the Frontend Directory
+Move to the "frontend" directory using your terminal.
+
+  
+
+### 2. Install Frontend Dependencies
+Run the following command to install frontend dependencies:
+```shell
+npm install
+```
+
+### 3. Build the Frontend
+Run the following command to install frontend dependencies:
+```shell
+npm install
+```
+### 3. Build the Frontend
+To build the frontend for production, use:
+```shell
+npm run build
+```
+For development, use:
+```shell
+npm run watch
+```
+
+## Backend Setup
+
+### 1. Navigate to the Backend Directory
+Move to the "filebrowser" directory using your terminal.
+
+### 2. Download Go Modules
+Run the following command to download Go modules:
+```shell
+go mod download
+```
+
+### 3. Build the Backend
+To build the backend for production, use:
+```shell
+go build
+```
+
+For development, use:
+```shell
+go build -tags dev
+```
+
+## Environment Configuration
+
+Create and populate a .filebrowser.env file based on the example provided in .filebrowser.example.env.
+
+## Running the Application
+
+To start the application, execute the following command from the terminal:
+```shell
+./filebrowser
+```
+or this command for development:
+```shell
+go run main.go
+```
+Your application will be served on the port specified in the .filebrowser.env file.
+
 
 ## Configuration
 

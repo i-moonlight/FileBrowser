@@ -75,6 +75,8 @@ go run main.go
 ```
 Your application will be served on the port specified in the .filebrowser.env file.
 
+Miro board with flow diagrams - [MIRO](https://miro.com/app/board/uXjVMoRDwp0=/?share_link_id=889964642849)
+
 ## Technologies
 
 BackEnd Language - [GO](https://go.dev/)

@@ -12,13 +12,12 @@
 
 filebrowser provides a file managing interface within a specified directory and it can be used to upload, delete, preview, rename and edit your files. It allows the creation of multiple users and each user can have its own directory. It can be used as a standalone app.
 
-## Features
-
-Please refer to our docs at [https://filebrowser.org/features](https://filebrowser.org/features)
-
 ## Install
 
-For installation instructions please refer to our docs at [https://filebrowser.org/installation](https://filebrowser.org/installation).
+To start this app you have to install:
+- [Go lang v1.20.5](https://go.dev/dl/)
+- [Node.js v16.19.0](https://nodejs.org/uk/blog/release/v16.19.0)
+- [Redis server v7.0](https://redis.io/download/)
 
 ## Configuration
 

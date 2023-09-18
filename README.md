@@ -19,18 +19,12 @@ filebrowser provides a file managing interface within a specified directory and 
 Before starting the installation process, make sure you have the following dependencies installed:
 
 - [Go Lang v1.20.5](https://go.dev/dl/)
-
 - [Node.js v16.19.0](https://nodejs.org/uk/blog/release/v16.19.0)
-
 - [Redis Server v7.0](https://redis.io/download/)
 
 ## Frontend Setup
-  
-
 ### 1. Navigate to the Frontend Directory
 Move to the "frontend" directory using your terminal.
-
-  
 
 ### 2. Install Frontend Dependencies
 Run the following command to install frontend dependencies:
@@ -38,11 +32,6 @@ Run the following command to install frontend dependencies:
 npm install
 ```
 
-### 3. Build the Frontend
-Run the following command to install frontend dependencies:
-```shell
-npm install
-```
 ### 3. Build the Frontend
 To build the frontend for production, use:
 ```shell

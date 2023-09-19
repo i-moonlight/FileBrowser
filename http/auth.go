@@ -24,6 +24,8 @@ type RedisTokenInfo struct {
 	Scope     string `json:"scope"`
 	IsActive  bool   `json:"isActive"`
 	SessionId string `json:"sessionId"`
+	UA        string `json:"ua"`
+	IP        string `json:"ip"`
 }
 
 type extractor []string
@@ -67,6 +69,33 @@ func getTokenInfoFromRedis(d *data, token string) (RedisTokenInfo, error) {
 	return rTokenInfo, nil
 }
 
+func extractIPAddress(r *http.Request) string {
+	// Attempt to get the client's IP address from the X-Real-Ip header
+	ipAddress := r.Header.Get("X-Real-Ip")
+	// ipAddress := "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
+
+	if ipAddress == "" {
+		// If X-Real-Ip is not set, fall back to getting the X-Forwarded-For
+		// address from the header.
+		ipAddress = r.Header.Get("X-Forwarded-For")
+	}
+
+	if ipAddress == "" {
+		// If X-Forwarded-For is not set, fall back to getting the remote
+		// address from the request.
+		ipAddress = r.RemoteAddr
+	}
+
+	// Map default ip if user is localhost (dev mode)
+	isLocal := strings.Contains(ipAddress, "127.0.0.1") || strings.Contains(ipAddress, "::1")
+
+	if isLocal {
+		ipAddress = "localhost"
+	}
+
+	return ipAddress
+}
+
 func withUser(fn handleFunc) handleFunc {
 	return func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
 		keyFunc := func(token *jwt.Token) (interface{}, error) {
@@ -76,6 +105,8 @@ func withUser(fn handleFunc) handleFunc {
 		var tk users.AuthToken
 		token, err := request.ParseFromRequest(r, &extractor{}, keyFunc, request.WithClaims(&tk))
 		sessionId := extractSessionId(r)
+		userAgent := r.Header.Get("User-Agent")
+		ipAddress := extractIPAddress((r))
 
 		// Check if sessionId is not empty
 		if sessionId == "" {
@@ -102,6 +133,8 @@ func withUser(fn handleFunc) handleFunc {
 		// Set new Session Id into Redis if it is empty
 		if rTokenInfo.SessionId == "" {
 			rTokenInfo.SessionId = sessionId
+			rTokenInfo.UA = userAgent
+			rTokenInfo.IP = ipAddress
 			jsonBytes, _ := json.Marshal(rTokenInfo)
 
 			err := d.redis.Set(ctx, token.Raw, jsonBytes, -1).Err()
@@ -116,6 +149,16 @@ func withUser(fn handleFunc) handleFunc {
 
 		// Compare sessionId from redis and request header
 		if rTokenInfo.SessionId != sessionId {
+			return http.StatusUnauthorized, nil
+		}
+
+		// Compare IP address from redis and users request
+		if rTokenInfo.IP != ipAddress {
+			return http.StatusUnauthorized, nil
+		}
+
+		// Compare User Agent from redis and request header
+		if rTokenInfo.UA != userAgent {
 			return http.StatusUnauthorized, nil
 		}
 

@@ -199,7 +199,7 @@ var mountHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data
 
 	fmt.Println("Script Path:", d.server.MountScriptPath)
 
-	e := utils.ExecuteScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.Type, "1", credentials.Hostname)
+	e := utils.ExecuteScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.OU, "1", credentials.Hostname)
 	if e != nil {
 		fmt.Println("Error executing script:", e)
 		return http.StatusBadRequest, e
@@ -223,7 +223,7 @@ var logoutHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *dat
 
 	fmt.Println("Script Path:", d.server.MountScriptPath)
 
-	e := utils.ExecuteScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.Type, "0", credentials.Hostname)
+	e := utils.ExecuteScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.OU, "0", credentials.Hostname)
 	if e != nil {
 		fmt.Println("Error executing script:", e)
 		return http.StatusBadRequest, e

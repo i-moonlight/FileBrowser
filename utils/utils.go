@@ -89,6 +89,7 @@ func ExecuteScript(scriptPath string, args ...string) error {
 }
 
 func SubscribeRedisEvent(rdb *redis.Client, tokenCredentialsSecret string, tokenSecret string, mountScriptPath string) {
+
 	pubsub := rdb.Subscribe(ctx, "__keyevent@0__:expired")
 	// defer pubsub.Close()
 	// Wait for the subscription to become ready
@@ -109,11 +110,9 @@ func messageListener(pubsub *redis.PubSub, tokenSecret string, tokenCredentialsS
 			fmt.Println("Error receiving message:", err)
 		}
 
-		fmt.Println(msg.Payload)
-
 		tokenClaims := parseToken(msg.Payload, tokenSecret, tokenCredentialsSecret)
 		decryptedCredentials := parseCredentials(tokenClaims.User.EncryptedCredentials.EncryptedData, tokenClaims.User.EncryptedCredentials.Iv, tokenCredentialsSecret)
-		e := ExecuteScript(mountScriptPath, decryptedCredentials.Username, decryptedCredentials.Password, decryptedCredentials.Type, "0", decryptedCredentials.Hostname)
+		e := ExecuteScript(mountScriptPath, decryptedCredentials.Username, decryptedCredentials.Password, decryptedCredentials.OU, "0", decryptedCredentials.Hostname)
 		if e != nil {
 			fmt.Println("Error executing script:", e)
 		}

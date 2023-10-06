@@ -72,7 +72,6 @@ func getTokenInfoFromRedis(d *data, token string) (RedisTokenInfo, error) {
 func extractIPAddress(r *http.Request) string {
 	// Attempt to get the client's IP address from the X-Real-Ip header
 	ipAddress := r.Header.Get("X-Real-Ip")
-	// ipAddress := "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
 
 	if ipAddress == "" {
 		// If X-Real-Ip is not set, fall back to getting the X-Forwarded-For
@@ -197,15 +196,12 @@ var mountHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data
 	var credentials users.DecryptedCredentials
 	json.Unmarshal([]byte(jsonString), &credentials)
 
-	fmt.Println("Script Path:", d.server.MountScriptPath)
-
 	e := utils.ExecuteScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.OU, "1", credentials.Hostname)
 	if e != nil {
 		fmt.Println("Error executing script:", e)
 		return http.StatusBadRequest, e
 	}
 
-	fmt.Println("Script executed successfully.")
 	return http.StatusOK, nil
 })
 
@@ -221,15 +217,11 @@ var logoutHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *dat
 	var credentials users.DecryptedCredentials
 	json.Unmarshal([]byte(jsonString), &credentials)
 
-	fmt.Println("Script Path:", d.server.MountScriptPath)
-
 	e := utils.ExecuteScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.OU, "0", credentials.Hostname)
 	if e != nil {
 		fmt.Println("Error executing script:", e)
 		return http.StatusBadRequest, e
 	}
-
-	fmt.Println("Script executed successfully (unmount).")
 
 	d.redis.Del(ctx, d.token.Raw)
 	return http.StatusOK, nil

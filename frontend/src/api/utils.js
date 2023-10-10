@@ -1,5 +1,5 @@
 import store from "@/store";
-import { renew, logout } from "@/utils/auth";
+import { logout } from "@/utils/auth";
 import { baseURL } from "@/utils/constants";
 import { encodePath } from "@/utils/url";
 
@@ -14,6 +14,7 @@ export async function fetchURL(url, opts, auth = true) {
     res = await fetch(`${baseURL}${url}`, {
       headers: {
         "X-Auth": store.state.jwt,
+        "X-Session-Id": store.state.sessionId,
         ...headers,
       },
       ...rest,
@@ -25,9 +26,9 @@ export async function fetchURL(url, opts, auth = true) {
     throw error;
   }
 
-  if (auth && res.headers.get("X-Renew-Token") === "true") {
-    await renew(store.state.jwt);
-  }
+  // if (auth && res.headers.get("X-Renew-Token") === "true") {
+  //   await renew(store.state.jwt);
+  // }
 
   if (res.status < 200 || res.status > 299) {
     const error = new Error(await res.text());
@@ -61,7 +62,7 @@ export function removePrefix(url) {
   return url;
 }
 
-export function createURL(endpoint, params = {}, auth = true) {
+export function createURL(endpoint, params = {}, auth = true, sid = true) {
   let prefix = baseURL;
   if (!prefix.endsWith("/")) {
     prefix = prefix + "/";
@@ -70,6 +71,7 @@ export function createURL(endpoint, params = {}, auth = true) {
 
   const searchParams = {
     ...(auth && { auth: store.state.jwt }),
+    ...(sid && { sid: store.state.sessionId }),
     ...params,
   };
 

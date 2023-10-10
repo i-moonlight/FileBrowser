@@ -148,8 +148,10 @@ export default {
     });
   },
   methods: {
-    ...mapMutations(["showHover", "closeHovers", "setReload"]),
+    ...mapMutations(["showHover", "closeHovers", "setReload", "resetSelected"]),
     open() {
+      this.resetSelected();
+      this.$store.commit("multiple", false);
       this.showHover("search");
     },
     close(event) {
@@ -162,8 +164,8 @@ export default {
         this.close(event);
         return;
       }
-
-      this.results.length = 0;
+      
+      // this.results.length = 0;
     },
     init(string) {
       this.value = `${string} `;

@@ -24,7 +24,6 @@ you want to change. Other options will remain unchanged.`,
 		ser, err := d.store.Settings.GetServer()
 		checkErr(err)
 
-		hasAuth := false
 		flags.Visit(func(flag *pflag.Flag) {
 			switch flag.Name {
 			case "baseurl":
@@ -43,10 +42,6 @@ you want to change. Other options will remain unchanged.`,
 				ser.Port = mustGetString(flags, flag.Name)
 			case "log":
 				ser.Log = mustGetString(flags, flag.Name)
-			case "signup":
-				set.Signup = mustGetBool(flags, flag.Name)
-			case "auth.method":
-				hasAuth = true
 			case "shell":
 				set.Shell = convertCmdStrToCmdArray(mustGetString(flags, flag.Name))
 			case "branding.name":
@@ -61,22 +56,9 @@ you want to change. Other options will remain unchanged.`,
 				set.Branding.Files = mustGetString(flags, flag.Name)
 			}
 		})
-
-		getUserDefaults(flags, &set.Defaults, false)
-
-		// read the defaults
-		auther, err := d.store.Auth.Get(set.AuthMethod)
-		checkErr(err)
-
-		// check if there are new flags for existing auth method
-		set.AuthMethod, auther = getAuthentication(flags, hasAuth, set, auther)
-
-		err = d.store.Auth.Save(auther)
-		checkErr(err)
 		err = d.store.Settings.Save(set)
 		checkErr(err)
 		err = d.store.Settings.SaveServer(ser)
 		checkErr(err)
-		printSettings(ser, set, auther)
 	}, pythonConfig{}),
 }

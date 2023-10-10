@@ -15,6 +15,7 @@ const state = {
     items: [],
   },
   jwt: "",
+  sessionId: "",
   progress: 0,
   loading: false,
   reload: false,
@@ -23,6 +24,7 @@ const state = {
   show: null,
   showShell: false,
   showConfirm: null,
+  sorting: { by: 'name', asc: false }
 };
 
 export default new Vuex.Store({

@@ -1,129 +1,68 @@
 <template>
-  <div id="login" :class="{ recaptcha: recaptcha }">
-    <form @submit="submit">
-      <img :src="logoURL" alt="File Browser" />
+  <main id="login">
+    <div v-if="loading">
+      <h2 class="message delayed">
+        <div class="spinner">
+          <div class="bounce1"></div>
+          <div class="bounce2"></div>
+          <div class="bounce3"></div>
+        </div>
+        <span>{{ $t("files.loading") }}</span>
+      </h2>
+    </div>
+    
+    <form v-else>
+      <img :src="logoUrl" alt="File Browser" />
       <h1>{{ name }}</h1>
-      <div v-if="error !== ''" class="wrong">{{ error }}</div>
-
-      <input
-        autofocus
-        class="input input--block"
-        type="text"
-        autocapitalize="off"
-        v-model="username"
-        :placeholder="$t('login.username')"
-      />
-      <input
-        class="input input--block"
-        type="password"
-        v-model="password"
-        :placeholder="$t('login.password')"
-      />
-      <input
-        class="input input--block"
-        v-if="createMode"
-        type="password"
-        v-model="passwordConfirm"
-        :placeholder="$t('login.passwordConfirm')"
-      />
-
-      <div v-if="recaptcha" id="recaptcha"></div>
-      <input
-        class="button button--block"
-        type="submit"
-        :value="createMode ? $t('login.signup') : $t('login.submit')"
-      />
-
-      <p @click="toggleMode" v-if="signup">
-        {{
-          createMode ? $t("login.loginInstead") : $t("login.createAnAccount")
-        }}
-      </p>
+      <h2>{{ $t("Please use your link to login") }}</h2>
     </form>
-  </div>
+  </main>
 </template>
 
 <script>
 import * as auth from "@/utils/auth";
-import {
-  name,
-  logoURL,
-  recaptcha,
-  recaptchaKey,
-  signup,
-} from "@/utils/constants";
+import { mapState, mapMutations } from "vuex";
+import { name, logoURL } from "@/utils/constants";
 
 export default {
   name: "login",
   computed: {
-    signup: () => signup,
+    ...mapState(["loading"]),
     name: () => name,
-    logoURL: () => logoURL,
+    logoUrl: () => {
+      return logoURL
+    }
   },
-  data: function () {
-    return {
-      createMode: false,
-      error: "",
-      username: "",
-      password: "",
-      recaptcha: recaptcha,
-      passwordConfirm: "",
-    };
-  },
-  mounted() {
-    if (!recaptcha) return;
+  async created() {
+    const token = this.$route.query.token
+    let redirect = this.$route.query.redirect;
 
-    window.grecaptcha.ready(function () {
-      window.grecaptcha.render("recaptcha", {
-        sitekey: recaptchaKey,
-      });
-    });
-  },
-  methods: {
-    toggleMode() {
-      this.createMode = !this.createMode;
-    },
-    async submit(event) {
-      event.preventDefault();
-      event.stopPropagation();
+    if (redirect === "" || redirect === undefined || redirect === null) {
+      redirect = "/files/";
+    }
 
-      let redirect = this.$route.query.redirect;
-      if (redirect === "" || redirect === undefined || redirect === null) {
-        redirect = "/files/";
-      }
+    if (token) {
+      this.setLoading(true)
+      auth.clearStoreAuth()
 
-      let captcha = "";
-      if (recaptcha) {
-        captcha = window.grecaptcha.getResponse();
-
-        if (captcha === "") {
-          this.error = this.$t("login.wrongCredentials");
-          return;
-        }
-      }
-
-      if (this.createMode) {
-        if (this.password !== this.passwordConfirm) {
-          this.error = this.$t("login.passwordsDontMatch");
-          return;
-        }
-      }
+      const sessionId = crypto.randomUUID()
+      sessionStorage.setItem('token', token)
+      sessionStorage.setItem('sessionId', sessionId)
 
       try {
-        if (this.createMode) {
-          await auth.signup(this.username, this.password);
-        }
-
-        await auth.login(this.username, this.password, captcha);
-        this.$router.push({ path: redirect });
-      } catch (e) {
-        if (e.message == 409) {
-          this.error = this.$t("login.usernameTaken");
-        } else {
-          this.error = this.$t("login.wrongCredentials");
-        }
+        await auth.checkToken(token, sessionId)
+        await auth.mount(token, sessionId)
+        await this.$router.push(redirect)
+        this.$toast.success("Welcome")
+      } catch (error) {
+        this.$toast.error(this.$t("Unauthorized"))
+      } finally {
+        this.setLoading(false)
       }
-    },
+    }
   },
+  methods: {
+    ...mapMutations(["setLoading"]),
+  }
 };
 </script>

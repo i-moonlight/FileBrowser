@@ -85,8 +85,17 @@ export default {
         oldLink = this.req.items[this.selected[0]].url;
       }
 
-      newLink =
-        url.removeLastDir(oldLink) + "/" + encodeURIComponent(this.name);
+      newLink = url.removeLastDir(oldLink) + "/" + encodeURIComponent(this.name);
+
+      if (!this.name.length) {
+        this.$toast.error("Please provide a name")
+        return
+      };
+      
+      if (this.oldName() === this.name) {
+        this.$toast.error("Please provide a different name")
+        return
+      }
 
       try {
         await api.move([{ from: oldLink, to: newLink }]);

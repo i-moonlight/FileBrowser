@@ -43,7 +43,7 @@
 
 <script>
 import { mapState, mapMutations } from "vuex";
-import { users as api } from "@/api";
+// import { users as api } from "@/api";
 import Errors from "@/views/Errors";
 
 export default {
@@ -57,17 +57,17 @@ export default {
       users: [],
     };
   },
-  async created() {
-    this.setLoading(true);
+  // async created() {
+  //   this.setLoading(true);
 
-    try {
-      this.users = await api.getAll();
-    } catch (e) {
-      this.error = e;
-    } finally {
-      this.setLoading(false);
-    }
-  },
+  //   try {
+  //     this.users = await api.getAll();
+  //   } catch (e) {
+  //     this.error = e;
+  //   } finally {
+  //     this.setLoading(false);
+  //   }
+  // },
   computed: {
     ...mapState(["loading"]),
   },

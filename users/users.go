@@ -2,8 +2,8 @@ package users
 
 import (
 	"path/filepath"
-	"regexp"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/spf13/afero"
 
 	"github.com/filebrowser/filebrowser/v2/errors"
@@ -26,16 +26,54 @@ type User struct {
 	Password     string        `json:"password"`
 	Scope        string        `json:"scope"`
 	Locale       string        `json:"locale"`
-	LockPassword bool          `json:"lockPassword"`
 	ViewMode     ViewMode      `json:"viewMode"`
 	SingleClick  bool          `json:"singleClick"`
 	Perm         Permissions   `json:"perm"`
-	Commands     []string      `json:"commands"`
 	Sorting      files.Sorting `json:"sorting"`
 	Fs           afero.Fs      `json:"-" yaml:"-"`
 	Rules        []rules.Rule  `json:"rules"`
 	HideDotfiles bool          `json:"hideDotfiles"`
 	DateFormat   bool          `json:"dateFormat"`
+}
+
+type EncryptedCredentials struct {
+	Iv            string `json:"iv"`
+	EncryptedData string `json:"encryptedData"`
+}
+
+type DecryptedCredentials struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Type     string `json:"type"`
+	OU       string `json:"OU"`
+	Hostname string `json:"hostname"`
+}
+
+type UserInfo struct {
+	Locale               string               `json:"locale"`
+	ViewMode             ViewMode             `json:"viewMode"`
+	SingleClick          bool                 `json:"singleClick"`
+	Perm                 Permissions          `json:"perm"`
+	HideDotfiles         bool                 `json:"hideDotfiles"`
+	DateFormat           bool                 `json:"dateFormat"`
+	Scope                string               `json:"scope"`
+	EncryptedCredentials EncryptedCredentials `json:"credentials"`
+}
+
+type TokenStruct struct {
+	Scope                string               `json:"scope"`
+	Locale               string               `json:"locale"`
+	ViewMode             ViewMode             `json:"viewMode"`
+	Perm                 Permissions          `json:"perm"`
+	Fs                   afero.Fs             `json:"-" yaml:"-"`
+	HideDotfiles         bool                 `json:"hideDotfiles"`
+	EncryptedCredentials EncryptedCredentials `json:"credentiald"`
+	Raw                  string               `json:"raw"`
+}
+
+type AuthToken struct {
+	User UserInfo `json:"user"`
+	jwt.RegisteredClaims
 }
 
 // GetRules implements rules.Provider.
@@ -48,7 +86,6 @@ var checkableFields = []string{
 	"Password",
 	"Scope",
 	"ViewMode",
-	"Commands",
 	"Sorting",
 	"Rules",
 }
@@ -76,10 +113,6 @@ func (u *User) Clean(baseScope string, fields ...string) error {
 			if u.ViewMode == "" {
 				u.ViewMode = ListViewMode
 			}
-		case "Commands":
-			if u.Commands == nil {
-				u.Commands = []string{}
-			}
 		case "Sorting":
 			if u.Sorting.By == "" {
 				u.Sorting.By = "name"
@@ -103,19 +136,4 @@ func (u *User) Clean(baseScope string, fields ...string) error {
 // FullPath gets the full path for a user's relative path.
 func (u *User) FullPath(path string) string {
 	return afero.FullBaseFsPath(u.Fs.(*afero.BasePathFs), path)
-}
-
-// CanExecute checks if an user can execute a specific command.
-func (u *User) CanExecute(command string) bool {
-	if !u.Perm.Execute {
-		return false
-	}
-
-	for _, cmd := range u.Commands {
-		if regexp.MustCompile(cmd).MatchString(command) {
-			return true
-		}
-	}
-
-	return false
 }

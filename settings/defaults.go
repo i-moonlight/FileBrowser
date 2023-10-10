@@ -14,7 +14,6 @@ type UserDefaults struct {
 	SingleClick  bool              `json:"singleClick"`
 	Sorting      files.Sorting     `json:"sorting"`
 	Perm         users.Permissions `json:"perm"`
-	Commands     []string          `json:"commands"`
 	HideDotfiles bool              `json:"hideDotfiles"`
 	DateFormat   bool              `json:"dateFormat"`
 }
@@ -27,7 +26,6 @@ func (d *UserDefaults) Apply(u *users.User) {
 	u.SingleClick = d.SingleClick
 	u.Perm = d.Perm
 	u.Sorting = d.Sorting
-	u.Commands = d.Commands
 	u.HideDotfiles = d.HideDotfiles
 	u.DateFormat = d.DateFormat
 }

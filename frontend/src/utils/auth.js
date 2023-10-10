@@ -3,7 +3,7 @@ import router from "@/router";
 import { Base64 } from "js-base64";
 import { baseURL } from "@/utils/constants";
 
-export function parseToken(token) {
+export function parseToken(token, sessionId) {
   const parts = token.split(".");
 
   if (parts.length !== 3) {
@@ -16,77 +16,58 @@ export function parseToken(token) {
 
   localStorage.setItem("jwt", token);
   store.commit("setJWT", token);
+  store.commit("setSessionId", sessionId);
   store.commit("setUser", data.user);
 }
 
-export async function validateLogin() {
+export async function checkToken(jwt, sessionId) {
+  const res = await fetch(`${baseURL}/api/check-token`, {
+    method: 'POST',
+    headers: { 'X-Auth': jwt, 'X-Session-Id': sessionId },
+  });
+
+  if (res.status === 200) {
+    parseToken(jwt, sessionId);
+  } else {
+    throw new Error(res);
+  }
+}
+
+export async function mount(jwt, sessionId) {
+  const res = await fetch(`${baseURL}/api/mount`, {
+    method: "POST",
+    headers: { "X-Auth": jwt, 'X-Session-Id': sessionId },
+  });
+
+  if (res.status === 200) {
+    return
+  } else {
+    throw new Error(res);
+  }
+}
+
+export async function logout(isRedirect = true) {
   try {
-    if (localStorage.getItem("jwt")) {
-      await renew(localStorage.getItem("jwt"));
+    await fetch(`${baseURL}/api/logout`, {
+      method: "POST",
+      headers: { "X-Auth": store.state.jwt, 'X-Session-Id': store.state.sessionId },
+    });
+  } catch (error) {
+    throw new Error(error);
+  } finally {
+    clearStoreAuth()
+
+    if (isRedirect) {
+      router.push({ path: "/login" });
     }
-  } catch (_) {
-    console.warn('Invalid JWT token in storage') // eslint-disable-line
   }
 }
 
-export async function login(username, password, recaptcha) {
-  const data = { username, password, recaptcha };
-
-  const res = await fetch(`${baseURL}/api/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
-
-  const body = await res.text();
-
-  if (res.status === 200) {
-    parseToken(body);
-  } else {
-    throw new Error(body);
-  }
-}
-
-export async function renew(jwt) {
-  const res = await fetch(`${baseURL}/api/renew`, {
-    method: "POST",
-    headers: {
-      "X-Auth": jwt,
-    },
-  });
-
-  const body = await res.text();
-
-  if (res.status === 200) {
-    parseToken(body);
-  } else {
-    throw new Error(body);
-  }
-}
-
-export async function signup(username, password) {
-  const data = { username, password };
-
-  const res = await fetch(`${baseURL}/api/signup`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (res.status !== 200) {
-    throw new Error(res.status);
-  }
-}
-
-export function logout() {
-  document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/";
-
-  store.commit("setJWT", "");
-  store.commit("setUser", null);
-  localStorage.setItem("jwt", null);
-  router.push({ path: "/login" });
+export function clearStoreAuth() {
+    document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/";
+  
+    store.commit("setJWT", "");
+    store.commit("setSessionId", "");
+    store.commit("setUser", null);
+    localStorage.setItem("jwt", null);
 }

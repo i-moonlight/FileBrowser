@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"io"
@@ -15,13 +16,13 @@ import (
 	"syscall"
 
 	homedir "github.com/mitchellh/go-homedir"
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	v "github.com/spf13/viper"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 
-	"github.com/filebrowser/filebrowser/v2/auth"
 	"github.com/filebrowser/filebrowser/v2/diskcache"
 	"github.com/filebrowser/filebrowser/v2/frontend"
 	fbhttp "github.com/filebrowser/filebrowser/v2/http"
@@ -29,8 +30,10 @@ import (
 	"github.com/filebrowser/filebrowser/v2/settings"
 	"github.com/filebrowser/filebrowser/v2/storage"
 	"github.com/filebrowser/filebrowser/v2/users"
+	"github.com/filebrowser/filebrowser/v2/utils"
 )
 
+var ctx = context.Background()
 var (
 	cfgFile string
 )
@@ -60,6 +63,11 @@ func addServerFlags(flags *pflag.FlagSet) {
 	flags.StringP("cert", "t", "", "tls certificate")
 	flags.StringP("key", "k", "", "tls key")
 	flags.StringP("root", "r", ".", "root to prepend to relative paths")
+	flags.StringP("redis_url", "", "localhost:6379", "url to redis server")
+	flags.StringP("redis_password", "", "", "password to redis server")
+	flags.StringP("token_secret", "", "", "secret key to decrypt token")
+	flags.StringP("token_credentials_secret", "", "", "secret key to decrypt token credentials (payload)")
+	flags.StringP("mount_script_path", "", "mount.sh", "path to mount NFS/DFS script")
 	flags.String("socket", "", "socket to listen to (cannot be used with address, port, cert nor key flags)")
 	flags.Uint32("socket-perm", 0666, "unix socket file permissions") //nolint:gomnd
 	flags.StringP("baseurl", "b", "", "base url")
@@ -175,7 +183,15 @@ user created with the credentials from options "username" and "password".`,
 			panic(err)
 		}
 
-		handler, err := fbhttp.NewHandler(imgSvc, fileCache, d.store, server, assetsFs)
+		rdb := redis.NewClient(&redis.Options{
+			Addr:     server.RedisUrl,
+			Password: server.RedisPassword, // no password set
+			DB:       0,                    // use default DB
+		})
+
+		go utils.SubscribeRedisEvent(rdb, server.TokenCredentialsSecret, server.TokenSecret, server.MountScriptPath)
+
+		handler, err := fbhttp.NewHandler(imgSvc, fileCache, d.store, server, assetsFs, rdb)
 		checkErr(err)
 
 		defer listener.Close()
@@ -238,6 +254,26 @@ func getRunParams(flags *pflag.FlagSet, st *storage.Storage) *settings.Server {
 	if val, set := getParamB(flags, "socket"); set {
 		server.Socket = val
 		isSocketSet = isSocketSet || set
+	}
+
+	if val, set := getParamB(flags, "redis_url"); set {
+		server.RedisUrl = val
+	}
+
+	if val, set := getParamB(flags, "redis_password"); set {
+		server.RedisPassword = val
+	}
+
+	if val, set := getParamB(flags, "token_secret"); set {
+		server.TokenSecret = val
+	}
+
+	if val, set := getParamB(flags, "token_credentials_secret"); set {
+		server.TokenCredentialsSecret = val
+	}
+
+	if val, set := getParamB(flags, "mount_script_path"); set {
+		server.MountScriptPath = val
 	}
 
 	if isAddrSet && isSocketSet {
@@ -312,9 +348,15 @@ func setupLog(logMethod string) {
 }
 
 func quickSetup(flags *pflag.FlagSet, d pythonData) {
+	tokenSecret, _ := getParamB(flags, "token_secret")
+
+	byteSecret, isValidSecret := isValidKey(tokenSecret)
+	if !isValidSecret {
+		panic("token secret is not base64 string with 64 bytes length")
+	}
+
 	set := &settings.Settings{
-		Key:              generateKey(),
-		Signup:           false,
+		Key:              byteSecret,
 		CreateUserDir:    false,
 		UserHomeBasePath: settings.DefaultUsersHomeBasePath,
 		Defaults: settings.UserDefaults{
@@ -332,23 +374,13 @@ func quickSetup(flags *pflag.FlagSet, d pythonData) {
 				Download: true,
 			},
 		},
-		AuthMethod: "",
-		Branding:   settings.Branding{},
-		Commands:   nil,
-		Shell:      nil,
-		Rules:      nil,
+		Branding: settings.Branding{},
+		Commands: nil,
+		Shell:    nil,
+		Rules:    nil,
 	}
 
 	var err error
-	if _, noauth := getParamB(flags, "noauth"); noauth {
-		set.AuthMethod = auth.MethodNoAuth
-		err = d.store.Auth.Save(&auth.NoAuth{})
-	} else {
-		set.AuthMethod = auth.MethodJSONAuth
-		err = d.store.Auth.Save(&auth.JSONAuth{})
-	}
-
-	checkErr(err)
 	err = d.store.Settings.Save(set)
 	checkErr(err)
 
@@ -363,30 +395,6 @@ func quickSetup(flags *pflag.FlagSet, d pythonData) {
 	}
 
 	err = d.store.Settings.SaveServer(ser)
-	checkErr(err)
-
-	username := getParam(flags, "username")
-	password := getParam(flags, "password")
-
-	if password == "" {
-		password, err = users.HashPwd("admin")
-		checkErr(err)
-	}
-
-	if username == "" || password == "" {
-		log.Fatal("username and password cannot be empty during quick setup")
-	}
-
-	user := &users.User{
-		Username:     username,
-		Password:     password,
-		LockPassword: false,
-	}
-
-	set.Defaults.Apply(user)
-	user.Perm.Admin = true
-
-	err = d.store.Users.Save(user)
 	checkErr(err)
 }
 

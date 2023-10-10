@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -37,16 +36,15 @@ func mustGetBool(flags *pflag.FlagSet, flag string) bool {
 	return b
 }
 
-func mustGetUint(flags *pflag.FlagSet, flag string) uint {
-	b, err := flags.GetUint(flag)
-	checkErr(err)
-	return b
-}
-
 func generateKey() []byte {
 	k, err := settings.GenerateKey()
 	checkErr(err)
 	return k
+}
+
+func isValidKey(keyString string) ([]byte, bool) {
+	byteKey, isValid := settings.IsValidKey(keyString)
+	return byteKey, isValid
 }
 
 type cobraFunc func(cmd *cobra.Command, args []string)
@@ -150,33 +148,6 @@ func jsonYamlArg(cmd *cobra.Command, args []string) error {
 		return nil
 	default:
 		return errors.New("invalid format: " + ext)
-	}
-}
-
-func cleanUpInterfaceMap(in map[interface{}]interface{}) map[string]interface{} {
-	result := make(map[string]interface{})
-	for k, v := range in {
-		result[fmt.Sprintf("%v", k)] = cleanUpMapValue(v)
-	}
-	return result
-}
-
-func cleanUpInterfaceArray(in []interface{}) []interface{} {
-	result := make([]interface{}, len(in))
-	for i, v := range in {
-		result[i] = cleanUpMapValue(v)
-	}
-	return result
-}
-
-func cleanUpMapValue(v interface{}) interface{} {
-	switch v := v.(type) {
-	case []interface{}:
-		return cleanUpInterfaceArray(v)
-	case map[interface{}]interface{}:
-		return cleanUpInterfaceMap(v)
-	default:
-		return v
 	}
 }
 

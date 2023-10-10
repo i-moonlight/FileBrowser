@@ -12,22 +12,25 @@ import (
 	"github.com/filebrowser/filebrowser/v2/settings"
 	"github.com/filebrowser/filebrowser/v2/storage"
 	"github.com/filebrowser/filebrowser/v2/users"
+	"github.com/redis/go-redis/v9"
 )
 
 type handleFunc func(w http.ResponseWriter, r *http.Request, d *data) (int, error)
+
+type ViewMode string
 
 type data struct {
 	*runner.Runner
 	settings *settings.Settings
 	server   *settings.Server
 	store    *storage.Storage
-	user     *users.User
-	raw      interface{}
+	token    *users.TokenStruct
+	redis    *redis.Client
 }
 
 // Check implements rules.Checker.
 func (d *data) Check(path string) bool {
-	if d.user.HideDotfiles && rules.MatchHidden(path) {
+	if d.token.HideDotfiles && rules.MatchHidden(path) {
 		return false
 	}
 
@@ -38,16 +41,10 @@ func (d *data) Check(path string) bool {
 		}
 	}
 
-	for _, rule := range d.user.Rules {
-		if rule.Matches(path) {
-			allow = rule.Allow
-		}
-	}
-
 	return allow
 }
 
-func handle(fn handleFunc, prefix string, store *storage.Storage, server *settings.Server) http.Handler {
+func handle(fn handleFunc, prefix string, store *storage.Storage, server *settings.Server, rdb *redis.Client) http.Handler {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 
@@ -62,6 +59,7 @@ func handle(fn handleFunc, prefix string, store *storage.Storage, server *settin
 			store:    store,
 			settings: settings,
 			server:   server,
+			redis:    rdb,
 		})
 
 		if status >= 400 || err != nil {
@@ -70,6 +68,14 @@ func handle(fn handleFunc, prefix string, store *storage.Storage, server *settin
 		}
 
 		if status != 0 {
+			errorMessage := ""
+			if err != nil {
+				errorMessage = err.Error()
+				if errorMessage == "source is parent" {
+					http.Error(w, "Please select a different location", status)
+					return
+				}
+			}
 			txt := http.StatusText(status)
 			http.Error(w, strconv.Itoa(status)+" "+txt, status)
 			return

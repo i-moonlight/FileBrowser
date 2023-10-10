@@ -1,39 +1,31 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
-	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/golang-jwt/jwt/v4/request"
+	"github.com/spf13/afero"
 
-	"github.com/filebrowser/filebrowser/v2/errors"
 	"github.com/filebrowser/filebrowser/v2/users"
+	"github.com/filebrowser/filebrowser/v2/utils"
 )
 
-const (
-	TokenExpirationTime = time.Hour * 2
-)
+var ctx = context.Background()
 
-type userInfo struct {
-	ID           uint              `json:"id"`
-	Locale       string            `json:"locale"`
-	ViewMode     users.ViewMode    `json:"viewMode"`
-	SingleClick  bool              `json:"singleClick"`
-	Perm         users.Permissions `json:"perm"`
-	Commands     []string          `json:"commands"`
-	LockPassword bool              `json:"lockPassword"`
-	HideDotfiles bool              `json:"hideDotfiles"`
-	DateFormat   bool              `json:"dateFormat"`
-}
-
-type authToken struct {
-	User userInfo `json:"user"`
-	jwt.RegisteredClaims
+type RedisTokenInfo struct {
+	Locale    string `json:"locale"`
+	Scope     string `json:"scope"`
+	IsActive  bool   `json:"isActive"`
+	SessionId string `json:"sessionId"`
+	UA        string `json:"ua"`
+	IP        string `json:"ip"`
 }
 
 type extractor []string
@@ -53,14 +45,54 @@ func (e extractor) ExtractToken(r *http.Request) (string, error) {
 		return auth, nil
 	}
 
-	if r.Method == http.MethodGet {
-		cookie, _ := r.Cookie("auth")
-		if cookie != nil && strings.Count(cookie.Value, ".") == 2 {
-			return cookie.Value, nil
-		}
+	return "", request.ErrNoTokenInRequest
+}
+
+func extractSessionId(r *http.Request) string {
+	sessionId := r.Header.Get("X-Session-Id")
+
+	if sessionId == "" {
+		sessionId = r.URL.Query().Get("sid")
 	}
 
-	return "", request.ErrNoTokenInRequest
+	return sessionId
+}
+
+func getTokenInfoFromRedis(d *data, token string) (RedisTokenInfo, error) {
+	val, err := d.redis.Get(ctx, token).Result()
+	if err != nil {
+		return RedisTokenInfo{}, err
+	}
+
+	var rTokenInfo RedisTokenInfo
+	json.Unmarshal([]byte(val), &rTokenInfo)
+	return rTokenInfo, nil
+}
+
+func extractIPAddress(r *http.Request) string {
+	// Attempt to get the client's IP address from the X-Real-Ip header
+	ipAddress := r.Header.Get("X-Real-Ip")
+
+	if ipAddress == "" {
+		// If X-Real-Ip is not set, fall back to getting the X-Forwarded-For
+		// address from the header.
+		ipAddress = r.Header.Get("X-Forwarded-For")
+	}
+
+	if ipAddress == "" {
+		// If X-Forwarded-For is not set, fall back to getting the remote
+		// address from the request.
+		ipAddress = r.RemoteAddr
+	}
+
+	// Map default ip if user is localhost (dev mode)
+	isLocal := strings.Contains(ipAddress, "127.0.0.1") || strings.Contains(ipAddress, "::1")
+
+	if isLocal {
+		ipAddress = "localhost"
+	}
+
+	return ipAddress
 }
 
 func withUser(fn handleFunc) handleFunc {
@@ -69,142 +101,128 @@ func withUser(fn handleFunc) handleFunc {
 			return d.settings.Key, nil
 		}
 
-		var tk authToken
+		var tk users.AuthToken
 		token, err := request.ParseFromRequest(r, &extractor{}, keyFunc, request.WithClaims(&tk))
+		sessionId := extractSessionId(r)
+		userAgent := r.Header.Get("User-Agent")
+		ipAddress := extractIPAddress((r))
 
+		// Check if sessionId is not empty
+		if sessionId == "" {
+			return http.StatusUnauthorized, nil
+		}
+
+		// Check is token valid
 		if err != nil || !token.Valid {
 			return http.StatusUnauthorized, nil
 		}
 
-		expired := !tk.VerifyExpiresAt(time.Now().Add(time.Hour), true)
-		updated := tk.IssuedAt != nil && tk.IssuedAt.Unix() < d.store.Users.LastUpdate(tk.User.ID)
+		// Check token expiration
+		expired := !tk.VerifyExpiresAt(time.Now(), true)
 
-		if expired || updated {
-			w.Header().Add("X-Renew-Token", "true")
+		if expired {
+			return http.StatusUnauthorized, nil
 		}
 
-		d.user, err = d.store.Users.Get(d.server.Root, tk.User.ID)
+		rTokenInfo, err := getTokenInfoFromRedis(d, token.Raw)
 		if err != nil {
-			return http.StatusInternalServerError, err
+			return http.StatusUnauthorized, nil
 		}
+
+		// Set new Session Id into Redis if it is empty
+		if rTokenInfo.SessionId == "" {
+			rTokenInfo.SessionId = sessionId
+			rTokenInfo.UA = userAgent
+			rTokenInfo.IP = ipAddress
+			jsonBytes, _ := json.Marshal(rTokenInfo)
+
+			err := d.redis.Set(ctx, token.Raw, jsonBytes, -1).Err()
+			if err != nil {
+				fmt.Println("Error while updating session Id in Redis")
+				fmt.Println(err)
+				return http.StatusUnauthorized, nil
+			}
+
+			rTokenInfo, _ = getTokenInfoFromRedis(d, token.Raw)
+		}
+
+		// Compare sessionId from redis and request header
+		if rTokenInfo.SessionId != sessionId {
+			return http.StatusUnauthorized, nil
+		}
+
+		// Compare IP address from redis and users request
+		if rTokenInfo.IP != ipAddress {
+			return http.StatusUnauthorized, nil
+		}
+
+		// Compare User Agent from redis and request header
+		if rTokenInfo.UA != userAgent {
+			return http.StatusUnauthorized, nil
+		}
+
+		scope := filepath.Join(d.server.Root, filepath.Join("/", tk.User.Scope)) //nolint:gocritic
+		fs := afero.NewBasePathFs(afero.NewOsFs(), scope)
+
+		tokenPayload := &users.TokenStruct{
+			Scope:                tk.User.Scope,
+			Locale:               tk.User.Locale,
+			ViewMode:             users.ViewMode(tk.User.ViewMode),
+			Perm:                 users.Permissions(tk.User.Perm),
+			Fs:                   fs,
+			HideDotfiles:         tk.User.HideDotfiles,
+			EncryptedCredentials: tk.User.EncryptedCredentials,
+			Raw:                  token.Raw,
+		}
+
+		d.token = tokenPayload
 		return fn(w, r, d)
 	}
 }
 
-func withAdmin(fn handleFunc) handleFunc {
-	return withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
-		if !d.user.Perm.Admin {
-			return http.StatusForbidden, nil
-		}
+var checkTokenHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+	return http.StatusOK, nil
+})
 
-		return fn(w, r, d)
-	})
-}
-
-var loginHandler = func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
-	auther, err := d.store.Auth.Get(d.settings.AuthMethod)
+var mountHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+	// Decrypt credentials data
+	decryptedCredentials, err := utils.DecryptData(d.token.EncryptedCredentials.EncryptedData, d.server.TokenCredentialsSecret, d.token.EncryptedCredentials.Iv)
 	if err != nil {
-		return http.StatusInternalServerError, err
+		return http.StatusUnauthorized, nil
 	}
 
-	user, err := auther.Auth(r, d.store.Users, d.settings, d.server)
-	if err == os.ErrPermission {
-		return http.StatusForbidden, nil
-	} else if err != nil {
-		return http.StatusInternalServerError, err
-	} else {
-		return printToken(w, r, d, user)
-	}
-}
+	jsonString := string(decryptedCredentials)
 
-type signupBody struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
+	var credentials users.DecryptedCredentials
+	json.Unmarshal([]byte(jsonString), &credentials)
 
-var signupHandler = func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
-	if !d.settings.Signup {
-		return http.StatusMethodNotAllowed, nil
-	}
-
-	if r.Body == nil {
-		return http.StatusBadRequest, nil
-	}
-
-	info := &signupBody{}
-	err := json.NewDecoder(r.Body).Decode(info)
-	if err != nil {
-		return http.StatusBadRequest, err
-	}
-
-	if info.Password == "" || info.Username == "" {
-		return http.StatusBadRequest, nil
-	}
-
-	user := &users.User{
-		Username: info.Username,
-	}
-
-	d.settings.Defaults.Apply(user)
-
-	pwd, err := users.HashPwd(info.Password)
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
-
-	user.Password = pwd
-
-	userHome, err := d.settings.MakeUserDir(user.Username, user.Scope, d.server.Root)
-	if err != nil {
-		log.Printf("create user: failed to mkdir user home dir: [%s]", userHome)
-		return http.StatusInternalServerError, err
-	}
-	user.Scope = userHome
-	log.Printf("new user: %s, home dir: [%s].", user.Username, userHome)
-
-	err = d.store.Users.Save(user)
-	if err == errors.ErrExist {
-		return http.StatusConflict, err
-	} else if err != nil {
-		return http.StatusInternalServerError, err
+	e := utils.ExecuteScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.OU, "1", credentials.Hostname)
+	if e != nil {
+		fmt.Println("Error executing script:", e)
+		return http.StatusBadRequest, e
 	}
 
 	return http.StatusOK, nil
-}
-
-var renewHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
-	return printToken(w, r, d, d.user)
 })
 
-func printToken(w http.ResponseWriter, _ *http.Request, d *data, user *users.User) (int, error) {
-	claims := &authToken{
-		User: userInfo{
-			ID:           user.ID,
-			Locale:       user.Locale,
-			ViewMode:     user.ViewMode,
-			SingleClick:  user.SingleClick,
-			Perm:         user.Perm,
-			LockPassword: user.LockPassword,
-			Commands:     user.Commands,
-			HideDotfiles: user.HideDotfiles,
-			DateFormat:   user.DateFormat,
-		},
-		RegisteredClaims: jwt.RegisteredClaims{
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenExpirationTime)),
-			Issuer:    "File Browser",
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString(d.settings.Key)
+var logoutHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+	// Decrypt credentials data
+	decryptedCredentials, err := utils.DecryptData(d.token.EncryptedCredentials.EncryptedData, d.server.TokenCredentialsSecret, d.token.EncryptedCredentials.Iv)
 	if err != nil {
-		return http.StatusInternalServerError, err
+		return http.StatusUnauthorized, nil
 	}
 
-	w.Header().Set("Content-Type", "text/plain")
-	if _, err := w.Write([]byte(signed)); err != nil {
-		return http.StatusInternalServerError, err
+	jsonString := string(decryptedCredentials)
+
+	var credentials users.DecryptedCredentials
+	json.Unmarshal([]byte(jsonString), &credentials)
+
+	e := utils.ExecuteScript(d.server.MountScriptPath, credentials.Username, credentials.Password, credentials.OU, "0", credentials.Hostname)
+	if e != nil {
+		fmt.Println("Error executing script:", e)
+		return http.StatusBadRequest, e
 	}
-	return 0, nil
-}
+
+	d.redis.Del(ctx, d.token.Raw)
+	return http.StatusOK, nil
+})

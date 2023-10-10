@@ -73,7 +73,7 @@
 
 <script>
 import { mapState, mapMutations } from "vuex";
-import { users as api } from "@/api";
+// import { users as api } from "@/api";
 import Languages from "@/components/settings/Languages";
 import i18n, { rtlLanguages } from "@/i18n";
 
@@ -126,7 +126,7 @@ export default {
 
       try {
         const data = { id: this.user.id, password: this.password };
-        await api.update(data, ["password"]);
+        // await api.update(data, ["password"]);
         this.updateUser(data);
         this.$showSuccess(this.$t("settings.passwordUpdated"));
       } catch (e) {
@@ -147,12 +147,12 @@ export default {
         const shouldReload =
           rtlLanguages.includes(data.locale) !==
           rtlLanguages.includes(i18n.locale);
-        await api.update(data, [
-          "locale",
-          "hideDotfiles",
-          "singleClick",
-          "dateFormat",
-        ]);
+        // await api.update(data, [
+        //   "locale",
+        //   "hideDotfiles",
+        //   "singleClick",
+        //   "dateFormat",
+        // ]);
         this.updateUser(data);
         if (shouldReload) {
           location.reload();

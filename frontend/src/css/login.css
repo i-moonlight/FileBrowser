@@ -8,8 +8,7 @@
 }
 
 #login img {
-  width: 4em;
-  height: 4em;
+  height: 8em;
   margin: 0 auto;
   display: block;
 }
@@ -20,12 +19,17 @@
   margin: .4em 0 .67em;
 }
 
+#login h2 {
+  text-align: center;
+  margin: .4em 0 .67em;
+}
+
 #login form {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  max-width: 16em;
+  max-width: 25em;
   width: 90%;
 }
 

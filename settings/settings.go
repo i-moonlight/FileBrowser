@@ -2,6 +2,7 @@ package settings
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"strings"
 
 	"github.com/filebrowser/filebrowser/v2/rules"
@@ -9,17 +10,12 @@ import (
 
 const DefaultUsersHomeBasePath = "/users"
 
-// AuthMethod describes an authentication method.
-type AuthMethod string
-
 // Settings contain the main settings of the application.
 type Settings struct {
 	Key              []byte              `json:"key"`
-	Signup           bool                `json:"signup"`
 	CreateUserDir    bool                `json:"createUserDir"`
 	UserHomeBasePath string              `json:"userHomeBasePath"`
 	Defaults         UserDefaults        `json:"defaults"`
-	AuthMethod       AuthMethod          `json:"authMethod"`
 	Branding         Branding            `json:"branding"`
 	Commands         map[string][]string `json:"commands"`
 	Shell            []string            `json:"shell"`
@@ -33,19 +29,24 @@ func (s *Settings) GetRules() []rules.Rule {
 
 // Server specific settings.
 type Server struct {
-	Root                  string `json:"root"`
-	BaseURL               string `json:"baseURL"`
-	Socket                string `json:"socket"`
-	TLSKey                string `json:"tlsKey"`
-	TLSCert               string `json:"tlsCert"`
-	Port                  string `json:"port"`
-	Address               string `json:"address"`
-	Log                   string `json:"log"`
-	EnableThumbnails      bool   `json:"enableThumbnails"`
-	ResizePreview         bool   `json:"resizePreview"`
-	EnableExec            bool   `json:"enableExec"`
-	TypeDetectionByHeader bool   `json:"typeDetectionByHeader"`
-	AuthHook              string `json:"authHook"`
+	Root                   string `json:"root"`
+	BaseURL                string `json:"baseURL"`
+	Socket                 string `json:"socket"`
+	TLSKey                 string `json:"tlsKey"`
+	TLSCert                string `json:"tlsCert"`
+	Port                   string `json:"port"`
+	Address                string `json:"address"`
+	Log                    string `json:"log"`
+	EnableThumbnails       bool   `json:"enableThumbnails"`
+	ResizePreview          bool   `json:"resizePreview"`
+	EnableExec             bool   `json:"enableExec"`
+	TypeDetectionByHeader  bool   `json:"typeDetectionByHeader"`
+	AuthHook               string `json:"authHook"`
+	RedisUrl               string `json:"redisUrl"`
+	RedisPassword          string `json:"redisPassword"`
+	TokenSecret            string `json:"tokenSecret"`
+	TokenCredentialsSecret string `json:"tokenCredentialsSecret"`
+	MountScriptPath        string `json:"mountScriptPath"`
 }
 
 // Clean cleans any variables that might need cleaning.
@@ -63,4 +64,13 @@ func GenerateKey() ([]byte, error) {
 	}
 
 	return b, nil
+}
+
+func IsValidKey(keyString string) ([]byte, bool) {
+	decodedKey, err := base64.StdEncoding.DecodeString(keyString)
+	if err != nil {
+		return decodedKey, false
+	}
+
+	return decodedKey, len(decodedKey) == 64
 }

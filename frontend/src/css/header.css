@@ -40,6 +40,7 @@ header a:hover {
 header>div:first-child>.action,
 header img {
   margin-right: 1em;
+  cursor: pointer;
 }
 
 header img {

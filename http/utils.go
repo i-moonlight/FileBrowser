@@ -1,6 +1,8 @@
 package http
 
 import (
+	"syscall"
+
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -42,6 +44,8 @@ func errToStatus(err error) int {
 		return http.StatusBadRequest
 	case errors.Is(err, libErrors.ErrRootUserDeletion):
 		return http.StatusForbidden
+	case errors.Is(err, syscall.ENAMETOOLONG):
+		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
 	}

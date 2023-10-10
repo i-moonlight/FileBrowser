@@ -54,10 +54,6 @@ func (s *Storage) Save(set *Settings) error {
 		set.Defaults.Locale = "en"
 	}
 
-	if set.Defaults.Commands == nil {
-		set.Defaults.Commands = []string{}
-	}
-
 	if set.Defaults.ViewMode == "" {
 		set.Defaults.ViewMode = users.MosaicViewMode
 	}

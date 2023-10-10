@@ -12,19 +12,14 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/filebrowser/filebrowser/v2/auth"
 	"github.com/filebrowser/filebrowser/v2/settings"
 	"github.com/filebrowser/filebrowser/v2/storage"
 	"github.com/filebrowser/filebrowser/v2/version"
+	"github.com/redis/go-redis/v9"
 )
 
 func handleWithStaticData(w http.ResponseWriter, _ *http.Request, d *data, fSys fs.FS, file, contentType string) (int, error) {
 	w.Header().Set("Content-Type", contentType)
-
-	auther, err := d.store.Auth.Get(d.settings.AuthMethod)
-	if err != nil {
-		return http.StatusInternalServerError, err
-	}
 
 	data := map[string]interface{}{
 		"Name":                  d.settings.Branding.Name,
@@ -34,10 +29,6 @@ func handleWithStaticData(w http.ResponseWriter, _ *http.Request, d *data, fSys 
 		"BaseURL":               d.server.BaseURL,
 		"Version":               version.Version,
 		"StaticURL":             path.Join(d.server.BaseURL, "/static"),
-		"Signup":                d.settings.Signup,
-		"NoAuth":                d.settings.AuthMethod == auth.MethodNoAuth,
-		"AuthMethod":            d.settings.AuthMethod,
-		"LoginPage":             auther.LoginPage(),
 		"CSS":                   false,
 		"ReCaptcha":             false,
 		"Theme":                 d.settings.Branding.Theme,
@@ -56,21 +47,6 @@ func handleWithStaticData(w http.ResponseWriter, _ *http.Request, d *data, fSys 
 
 		if err == nil {
 			data["CSS"] = true
-		}
-	}
-
-	if d.settings.AuthMethod == auth.MethodJSONAuth {
-		raw, err := d.store.Auth.Get(d.settings.AuthMethod) //nolint:govet
-		if err != nil {
-			return http.StatusInternalServerError, err
-		}
-
-		auther := raw.(*auth.JSONAuth)
-
-		if auther.ReCaptcha != nil {
-			data["ReCaptcha"] = auther.ReCaptcha.Key != "" && auther.ReCaptcha.Secret != ""
-			data["ReCaptchaHost"] = auther.ReCaptcha.Host
-			data["ReCaptchaKey"] = auther.ReCaptcha.Key
 		}
 	}
 
@@ -97,7 +73,7 @@ func handleWithStaticData(w http.ResponseWriter, _ *http.Request, d *data, fSys 
 	return 0, nil
 }
 
-func getStaticHandlers(store *storage.Storage, server *settings.Server, assetsFs fs.FS) (index, static http.Handler) {
+func getStaticHandlers(store *storage.Storage, server *settings.Server, assetsFs fs.FS, rdb *redis.Client) (index, static http.Handler) {
 	index = handle(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
 		if r.Method != http.MethodGet {
 			return http.StatusNotFound, nil
@@ -105,7 +81,7 @@ func getStaticHandlers(store *storage.Storage, server *settings.Server, assetsFs
 
 		w.Header().Set("x-xss-protection", "1; mode=block")
 		return handleWithStaticData(w, r, d, assetsFs, "index.html", "text/html; charset=utf-8")
-	}, "", store, server)
+	}, "", store, server, rdb)
 
 	static = handle(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
 		if r.Method != http.MethodGet {
@@ -146,7 +122,7 @@ func getStaticHandlers(store *storage.Storage, server *settings.Server, assetsFs
 		}
 
 		return 0, nil
-	}, "/static/", store, server)
+	}, "/static/", store, server, rdb)
 
 	return index, static
 }

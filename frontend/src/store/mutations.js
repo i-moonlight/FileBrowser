@@ -47,6 +47,7 @@ const mutations = {
     state.user = value;
   },
   setJWT: (state, value) => (state.jwt = value),
+  setSessionId: (state, value) => (state.sessionId = value),
   multiple: (state, value) => (state.multiple = value),
   addSelected: (state, value) => state.selected.push(value),
   removeSelected: (state, value) => {
@@ -81,6 +82,9 @@ const mutations = {
   resetClipboard: (state) => {
     state.clipboard.key = "";
     state.clipboard.items = [];
+  },
+  setSorting: (state, value) => {
+    state.sorting = value;
   },
 };
 

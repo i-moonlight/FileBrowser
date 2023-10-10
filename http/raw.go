@@ -13,7 +13,6 @@ import (
 
 	"github.com/filebrowser/filebrowser/v2/files"
 	"github.com/filebrowser/filebrowser/v2/fileutils"
-	"github.com/filebrowser/filebrowser/v2/users"
 )
 
 func slashClean(name string) string {
@@ -23,7 +22,7 @@ func slashClean(name string) string {
 	return gopath.Clean(name)
 }
 
-func parseQueryFiles(r *http.Request, f *files.FileInfo, _ *users.User) ([]string, error) {
+func parseQueryFiles(r *http.Request, f *files.FileInfo) ([]string, error) {
 	var fileSlice []string
 	names := strings.Split(r.URL.Query().Get("files"), ",")
 
@@ -77,14 +76,14 @@ func setContentDisposition(w http.ResponseWriter, r *http.Request, file *files.F
 }
 
 var rawHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
-	if !d.user.Perm.Download {
+	if !d.token.Perm.Download {
 		return http.StatusAccepted, nil
 	}
 
 	file, err := files.NewFileInfo(files.FileOptions{
-		Fs:         d.user.Fs,
+		Fs:         d.token.Fs,
 		Path:       r.URL.Path,
-		Modify:     d.user.Perm.Modify,
+		Modify:     d.token.Perm.Modify,
 		Expand:     false,
 		ReadHeader: d.server.TypeDetectionByHeader,
 		Checker:    d,
@@ -110,7 +109,7 @@ func addFile(ar archiver.Writer, d *data, path, commonPath string) error {
 		return nil
 	}
 
-	info, err := d.user.Fs.Stat(path)
+	info, err := d.token.Fs.Stat(path)
 	if err != nil {
 		return err
 	}
@@ -119,7 +118,7 @@ func addFile(ar archiver.Writer, d *data, path, commonPath string) error {
 		return nil
 	}
 
-	file, err := d.user.Fs.Open(path)
+	file, err := d.token.Fs.Open(path)
 	if err != nil {
 		return err
 	}
@@ -159,7 +158,7 @@ func addFile(ar archiver.Writer, d *data, path, commonPath string) error {
 }
 
 func rawDirHandler(w http.ResponseWriter, r *http.Request, d *data, file *files.FileInfo) (int, error) {
-	filenames, err := parseQueryFiles(r, file, d.user)
+	filenames, err := parseQueryFiles(r, file)
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}

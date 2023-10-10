@@ -5,7 +5,7 @@ import store from "@/store";
 export async function fetch(url) {
   url = removePrefix(url);
 
-  const res = await fetchURL(`/api/resources${url}`, {});
+  const res = await fetchURL(`/api/resources${url}?${new URLSearchParams(store.state.sorting)}`, {});
 
   let data = await res.json();
   data.url = `/files${url}`;
@@ -74,6 +74,10 @@ export function download(format, ...files) {
     url += `auth=${store.state.jwt}&`;
   }
 
+  if (store.state.sessionId) {
+    url += `sid=${store.state.sessionId}&`;
+  }
+  
   window.open(url);
 }
 
@@ -96,6 +100,7 @@ export async function post(url, content = "", overwrite = false, onupload) {
       true
     );
     request.setRequestHeader("X-Auth", store.state.jwt);
+    request.setRequestHeader("X-Session-Id", store.state.sessionId);
 
     if (typeof onupload === "function") {
       request.upload.onprogress = onupload;
@@ -143,7 +148,7 @@ export function copy(items, overwrite = false, rename = false) {
 }
 
 export async function checksum(url, algo) {
-  const data = await resourceAction(`${url}?checksum=${algo}`, "GET");
+  const data = await resourceAction(`${url}?checksum=${algo}&asc=true`, "GET");
   return (await data.json()).checksums[algo];
 }
 
@@ -177,10 +182,10 @@ export function getSubtitlesURL(file) {
   return subtitles;
 }
 
-export async function usage(url) {
-  url = removePrefix(url);
+// export async function usage(url) {
+//   url = removePrefix(url);
 
-  const res = await fetchURL(`/api/usage${url}`, {});
+//   const res = await fetchURL(`/api/usage${url}`, {});
 
-  return await res.json();
-}
+//   return await res.json();
+// }

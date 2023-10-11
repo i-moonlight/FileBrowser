@@ -43,7 +43,6 @@ type Server struct {
 	TypeDetectionByHeader  bool   `json:"typeDetectionByHeader"`
 	AuthHook               string `json:"authHook"`
 	RedisUrl               string `json:"redisUrl"`
-	RedisPassword          string `json:"redisPassword"`
 	TokenSecret            string `json:"tokenSecret"`
 	TokenCredentialsSecret string `json:"tokenCredentialsSecret"`
 	MountScriptPath        string `json:"mountScriptPath"`

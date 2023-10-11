@@ -64,7 +64,6 @@ func addServerFlags(flags *pflag.FlagSet) {
 	flags.StringP("key", "k", "", "tls key")
 	flags.StringP("root", "r", ".", "root to prepend to relative paths")
 	flags.StringP("redis_url", "", "localhost:6379", "url to redis server")
-	flags.StringP("redis_password", "", "", "password to redis server")
 	flags.StringP("token_secret", "", "", "secret key to decrypt token")
 	flags.StringP("token_credentials_secret", "", "", "secret key to decrypt token credentials (payload)")
 	flags.StringP("mount_script_path", "", "mount.sh", "path to mount NFS/DFS script")
@@ -183,11 +182,12 @@ user created with the credentials from options "username" and "password".`,
 			panic(err)
 		}
 
-		rdb := redis.NewClient(&redis.Options{
-			Addr:     server.RedisUrl,
-			Password: server.RedisPassword, // no password set
-			DB:       0,                    // use default DB
-		})
+		opts, err := redis.ParseURL(server.RedisUrl)
+		if err != nil {
+			panic(err)
+		}
+
+		rdb := redis.NewClient(opts)
 
 		go utils.SubscribeRedisEvent(rdb, server.TokenCredentialsSecret, server.TokenSecret, server.MountScriptPath)
 
@@ -258,10 +258,6 @@ func getRunParams(flags *pflag.FlagSet, st *storage.Storage) *settings.Server {
 
 	if val, set := getParamB(flags, "redis_url"); set {
 		server.RedisUrl = val
-	}
-
-	if val, set := getParamB(flags, "redis_password"); set {
-		server.RedisPassword = val
 	}
 
 	if val, set := getParamB(flags, "token_secret"); set {
